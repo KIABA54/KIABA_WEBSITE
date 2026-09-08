@@ -189,3 +189,15 @@ CREATE POLICY "ad_photos_public_read_online" ON ad_photos
             AND ads.status = 'ONLINE'
         )
     );
+
+-- =========================================================================
+-- STOCKAGE (Supabase Storage) — photos de profil & photos d'annonces
+-- =========================================================================
+-- Bucket public : les photos servies sur le site (annonces, avatars) sont
+-- par nature publiques une fois l'annonce en ligne. L'upload lui-même passe
+-- exclusivement par POST /api/uploads (service_role, jamais directement
+-- depuis le navigateur), donc aucune policy INSERT n'est nécessaire ici —
+-- un bucket "public" sert les fichiers en lecture sans vérifier RLS.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('kiaba-uploads', 'kiaba-uploads', true)
+ON CONFLICT (id) DO NOTHING;
