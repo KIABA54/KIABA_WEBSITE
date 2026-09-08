@@ -9,12 +9,10 @@ export const metadata: Metadata = {
   description: "Plateforme de petites annonces pour adultes rapide, discrète et sécurisée.",
 };
 
-// ANTI-ZOOM STRICT SUR TOUT LE SITE
+// Le pinch-to-zoom reste actif (accessibilité) : on ne fige que l'échelle initiale.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export default function RootLayout({
@@ -28,15 +26,15 @@ export default function RootLayout({
         {/* Modale de majorité 18+ */}
         <AgeVerificationModal />
 
-        {/* Header 2 étages exactement conforme aux captures */}
         <Header />
 
-        {/* Contenu principal */}
-        <main className="flex-1 max-w-lg w-full mx-auto px-3 sm:px-4 py-3">
+        {/* Contenu principal : pleine largeur confortable en mobile, colonne centrée et
+            élargie progressivement en tablette/desktop (les pages définissent elles-mêmes
+            une largeur plus étroite si leur contenu le justifie, ex: formulaires). */}
+        <main className="flex-1 w-full mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {children}
         </main>
 
-        {/* Pied de page */}
         <Footer />
       </body>
     </html>
