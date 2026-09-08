@@ -1,17 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { INITIAL_ADS } from "@/lib/mockData";
 import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE } from "@/lib/constants";
-import { Ad } from "@/lib/types";
+import { Ad, User as UserType } from "@/lib/types";
 import {
-  User,
   Mail,
-  Calendar,
-  Layers,
-  Sparkles,
   Edit3,
   Trash2,
   RefreshCw,
@@ -21,39 +16,19 @@ import {
   CheckCircle2,
   X,
   ShieldAlert,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 
 export default function ProfileDashboardPage() {
   const router = useRouter();
 
-  // Onglet actif : "ONLINE" ou "OFFLINE" ou "SECURITY"
+  const [user, setUser] = useState<UserType | null>(null);
+  const [myAds, setMyAds] = useState<Ad[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
   const [activeTab, setActiveTab] = useState<"ONLINE" | "OFFLINE" | "SECURITY">("ONLINE");
-
-  // Données utilisateur
-  const [user, setUser] = useState({
-    username: "Sexe_gamine",
-    email: "gamine.ci@gmail.com",
-    birth_date: "2002-05-14",
-    gender: "Femme",
-    profile_photo_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
-    free_ad_eligible: false,
-  });
-
-  // Annonces de l'utilisateur
-  const [myAds, setMyAds] = useState<Ad[]>([
-    INITIAL_ADS[0], // En ligne (VIP)
-    {
-      ...INITIAL_ADS[3], // En ligne (Pro)
-      user_id: "usr-1",
-    },
-    {
-      ...INITIAL_ADS[5], // Hors ligne (Expirée)
-      id: "ad-expired-1",
-      user_id: "usr-1",
-      status: "OFFLINE",
-      title: "Ancienne annonce expirée (prête à être renouvelée)",
-    },
-  ]);
 
   // Modales
   const [boostModalAd, setBoostModalAd] = useState<Ad | null>(null);
@@ -62,64 +37,240 @@ export default function ProfileDashboardPage() {
   const [accountDeleteOtp, setAccountDeleteOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
 
+  // Changement de mot de passe
+  const [pwOtpSent, setPwOtpSent] = useState(false);
+  const [pwCode, setPwCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+
   const [notification, setNotification] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [isActionLoading, setIsActionLoading] = useState(false);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(""), 5000);
+  };
+
+  const loadData = async () => {
+    setIsLoadingData(true);
+    setLoadError("");
+    try {
+      const [meRes, adsRes] = await Promise.all([
+        fetch("/api/auth/me"),
+        fetch("/api/ads/mine"),
+      ]);
+
+      if (meRes.status === 401) {
+        router.push("/connexion?next=/profil");
+        return;
+      }
+
+      const meData = await meRes.json();
+      const adsData = await adsRes.json();
+
+      if (!meRes.ok) throw new Error(meData.error || "Erreur lors du chargement du profil.");
+      if (!adsRes.ok) throw new Error(adsData.error || "Erreur lors du chargement de vos annonces.");
+
+      setUser(meData.user);
+      setMyAds(adsData.ads || []);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Erreur inattendue.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onlineAds = myAds.filter((a) => a.status === "ONLINE");
-  const offlineAds = myAds.filter((a) => a.status === "OFFLINE");
+  const offlineAds = myAds.filter((a) => a.status === "OFFLINE" || a.status === "PENDING_PAYMENT");
 
-  // ACTION : Booster une annonce (60% du prix d'origine)
-  const handleConfirmBoost = async (ad: Ad) => {
-    const originalPrice = FORMULAS[ad.formula]?.price || 1200;
-    const boostPrice = Math.round(originalPrice * BOOST_PERCENTAGE);
-
-    // Redirection vers paiement GeniusPay du Boost
-    router.push(`/paiement/simulation?amount=${boostPrice}&ref=BOOST-${ad.id}`);
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+    router.refresh();
   };
 
-  // ACTION : Modifier une annonce (999 FCFA)
-  const handleEditAd = (ad: Ad) => {
-    router.push(`/paiement/simulation?amount=${EDIT_AD_PRICE}&ref=EDIT-${ad.id}&redirect=/annonces/${ad.id}/modifier`);
+  // ACTION : Booster / Renouveler / Modifier — passe par le paiement réel
+  const initiatePaidAction = async (ad: Ad, actionType: "BOOST" | "RENEWAL" | "EDIT") => {
+    setActionError("");
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/payments/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ad_id: ad.id, action_type: actionType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.checkout_url) {
+        setActionError(data.error || "Erreur lors de l'initiation du paiement.");
+        return;
+      }
+      window.location.href = data.checkout_url;
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  // ACTION : Renouveler une annonce (prix de la formule)
-  const handleRenewAd = (ad: Ad) => {
-    const formulaPrice = FORMULAS[ad.formula]?.price || 1200;
-    router.push(`/paiement/simulation?amount=${formulaPrice}&ref=RENEW-${ad.id}`);
-  };
+  const handleConfirmBoost = (ad: Ad) => initiatePaidAction(ad, "BOOST");
+  const handleEditAd = (ad: Ad) => initiatePaidAction(ad, "EDIT");
+  const handleRenewAd = (ad: Ad) => initiatePaidAction(ad, "RENEWAL");
 
   // ACTION : Supprimer une annonce
-  const handleConfirmDeleteAd = () => {
+  const handleConfirmDeleteAd = async () => {
     if (!deleteModalAd) return;
-    setMyAds(myAds.filter((a) => a.id !== deleteModalAd.id));
-    setDeleteModalAd(null);
-    setNotification("L'annonce a été définitivement supprimée. Un email de confirmation vous a été envoyé.");
-    setTimeout(() => setNotification(""), 4000);
+    setIsActionLoading(true);
+    try {
+      const res = await fetch(`/api/ads/${deleteModalAd.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || "Erreur lors de la suppression.");
+        return;
+      }
+      setMyAds((prev) => prev.filter((a) => a.id !== deleteModalAd.id));
+      setDeleteModalAd(null);
+      showNotification("L'annonce a été définitivement supprimée.");
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  // ACTION : Demander la suppression du compte
-  const handleRequestAccountDeletion = () => {
-    setOtpSent(true);
-    setNotification("Code OTP de confirmation envoyé à votre adresse email (Code démo: 888999).");
+  // ACTION : Demander la suppression du compte (OTP)
+  const handleRequestAccountDeletion = async () => {
+    setActionError("");
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/delete-account/request", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || "Erreur lors de l'envoi du code.");
+        return;
+      }
+      setOtpSent(true);
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleConfirmAccountDeletion = () => {
-    if (accountDeleteOtp !== "888999" && accountDeleteOtp.length < 6) {
-      alert("Code OTP invalide.");
+  const handleConfirmAccountDeletion = async () => {
+    setActionError("");
+    if (accountDeleteOtp.length < 6) {
+      setActionError("Veuillez renseigner les 6 chiffres du code reçu par email.");
       return;
     }
-    alert(
-      "Compte et annonces définitivement supprimés. Votre adresse email a été inscrite sur liste noire et ne pourra plus jamais être utilisée sur le site."
-    );
-    router.push("/");
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/delete-account/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: accountDeleteOtp }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || "Code invalide.");
+        return;
+      }
+      router.push("/");
+      router.refresh();
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
   };
+
+  // ACTION : Changer le mot de passe (OTP)
+  const handleRequestPasswordChange = async () => {
+    setActionError("");
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password/request", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || "Erreur lors de l'envoi du code.");
+        return;
+      }
+      setPwOtpSent(true);
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleConfirmPasswordChange = async () => {
+    setActionError("");
+    if (pwCode.length < 6 || newPassword.length < 8) {
+      setActionError("Code à 6 chiffres et mot de passe d'au moins 8 caractères requis.");
+      return;
+    }
+    setIsActionLoading(true);
+    try {
+      const res = await fetch("/api/auth/change-password/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: pwCode, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setActionError(data.error || "Code invalide.");
+        return;
+      }
+      setPwOtpSent(false);
+      setPwCode("");
+      setNewPassword("");
+      showNotification("Votre mot de passe a été mis à jour.");
+    } catch {
+      setActionError("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  if (isLoadingData) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 flex flex-col items-center gap-2 text-slate-500">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <p className="text-xs">Chargement de votre profil...</p>
+      </div>
+    );
+  }
+
+  if (loadError || !user) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-3">
+        <p className="text-sm text-rose-600 font-semibold">{loadError || "Impossible de charger votre profil."}</p>
+        <button
+          onClick={loadData}
+          className="py-2 px-4 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
-      {/* NOTIFICATION FLOTTANTE */}
       {notification && (
         <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>{notification}</span>
+        </div>
+      )}
+      {actionError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+          <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+          <span>{actionError}</span>
         </div>
       )}
 
@@ -145,16 +296,25 @@ export default function ProfileDashboardPage() {
           </p>
 
           <p className="text-[11px] text-slate-400">
-            Membre vérifié • Annonceur actif
+            {user.free_ad_eligible ? "1ère annonce gratuite disponible" : "Membre vérifié • Annonceur actif"}
           </p>
         </div>
 
-        <Link
-          href="/annonces/nouvelle"
-          className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 text-white font-bold text-xs shadow-md hover:from-brand-pink-600 hover:to-rose-700 transition-all flex-shrink-0"
-        >
-          + Nouvelle annonce
-        </Link>
+        <div className="flex flex-col gap-2 flex-shrink-0 w-full sm:w-auto">
+          <Link
+            href="/annonces/nouvelle"
+            className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 text-white font-bold text-xs shadow-md hover:from-brand-pink-600 hover:to-rose-700 transition-all text-center"
+          >
+            + Nouvelle annonce
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="py-2 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Déconnexion</span>
+          </button>
+        </div>
       </div>
 
       {/* NAVIGATION PAR ONGLETS */}
@@ -238,32 +398,31 @@ export default function ProfileDashboardPage() {
                   </div>
                 </div>
 
-                {/* BOUTONS D'ACTION SPECIFIQUES */}
                 <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center gap-2">
-                  {/* BOOSTER (60% DU PRIX) */}
                   {!ad.is_boosted && ad.formula !== "VIP" && (
                     <button
                       onClick={() => setBoostModalAd(ad)}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1 transition-colors"
+                      disabled={isActionLoading}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1 transition-colors disabled:opacity-50"
                     >
                       <Zap className="w-3.5 h-3.5 fill-current" />
                       <span>Booster (60%)</span>
                     </button>
                   )}
 
-                  {/* MODIFIER (999 FCFA) */}
                   <button
                     onClick={() => handleEditAd(ad)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1 transition-colors"
+                    disabled={isActionLoading}
+                    className="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1 transition-colors disabled:opacity-50"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     <span>Modifier ({EDIT_AD_PRICE} FCFA)</span>
                   </button>
 
-                  {/* SUPPRIMER (IRRÉVERSIBLE) */}
                   <button
                     onClick={() => setDeleteModalAd(ad)}
-                    className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1 transition-colors ml-auto"
+                    disabled={isActionLoading}
+                    className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold border border-rose-200 flex items-center gap-1 transition-colors ml-auto disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Supprimer</span>
@@ -296,7 +455,7 @@ export default function ProfileDashboardPage() {
                   />
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                      Expirée (Hors ligne)
+                      {ad.status === "PENDING_PAYMENT" ? "En attente de paiement" : "Expirée (Hors ligne)"}
                     </span>
                     <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1 mt-1">
                       {ad.title}
@@ -307,18 +466,22 @@ export default function ProfileDashboardPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <button
-                    onClick={() => handleRenewAd(ad)}
-                    className="py-2 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 text-white font-bold text-xs shadow hover:from-brand-pink-600 flex items-center gap-1.5"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Renouveler ({FORMULAS[ad.formula]?.price.toLocaleString()} FCFA)</span>
-                  </button>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+                  {ad.status === "OFFLINE" && (
+                    <button
+                      onClick={() => handleRenewAd(ad)}
+                      disabled={isActionLoading}
+                      className="py-2 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 text-white font-bold text-xs shadow hover:from-brand-pink-600 flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Renouveler ({FORMULAS[ad.formula]?.price.toLocaleString()} FCFA)</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setDeleteModalAd(ad)}
-                    className="text-xs text-rose-600 font-semibold hover:underline"
+                    disabled={isActionLoading}
+                    className="text-xs text-rose-600 font-semibold hover:underline disabled:opacity-50"
                   >
                     Supprimer définitivement
                   </button>
@@ -327,7 +490,7 @@ export default function ProfileDashboardPage() {
             ))
           ) : (
             <p className="text-center py-8 text-xs text-slate-500">
-              Aucune annonce expirée.
+              Aucune annonce hors ligne.
             </p>
           )}
         </div>
@@ -345,12 +508,42 @@ export default function ProfileDashboardPage() {
             <p className="text-xs text-slate-500">
               Pour des raisons de sécurité, un code OTP à 6 chiffres vous sera envoyé par email pour valider tout changement.
             </p>
-            <button
-              onClick={() => alert("Code OTP de changement de mot de passe envoyé par email !")}
-              className="py-2 px-3.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-colors"
-            >
-              Envoyer un code OTP de réinitialisation
-            </button>
+
+            {!pwOtpSent ? (
+              <button
+                onClick={handleRequestPasswordChange}
+                disabled={isActionLoading}
+                className="py-2 px-3.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                Envoyer un code OTP de réinitialisation
+              </button>
+            ) : (
+              <div className="space-y-2.5 max-w-xs">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pwCode}
+                  onChange={(e) => setPwCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Code OTP (6 chiffres)"
+                  className="w-full text-center tracking-widest text-sm font-mono py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-blue-500"
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nouveau mot de passe (8 caractères min.)"
+                  className="w-full text-sm py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-blue-500"
+                />
+                <button
+                  onClick={handleConfirmPasswordChange}
+                  disabled={isActionLoading}
+                  className="w-full py-2.5 rounded-xl bg-brand-blue-800 hover:bg-brand-blue-900 text-white text-xs font-bold disabled:opacity-50"
+                >
+                  Valider le nouveau mot de passe
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ZONE DANGER : SUPPRESSION DÉFINITIVE DU COMPTE + EMAIL BLACKLIST */}
@@ -416,8 +609,13 @@ export default function ProfileDashboardPage() {
                 Annuler
               </button>
               <button
-                onClick={() => handleConfirmBoost(boostModalAd)}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
+                onClick={() => {
+                  const ad = boostModalAd;
+                  setBoostModalAd(null);
+                  handleConfirmBoost(ad);
+                }}
+                disabled={isActionLoading}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
               >
                 Payer via GeniusPay
               </button>
@@ -448,7 +646,8 @@ export default function ProfileDashboardPage() {
               </button>
               <button
                 onClick={handleConfirmDeleteAd}
-                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700"
+                disabled={isActionLoading}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 disabled:opacity-50"
               >
                 Confirmer la suppression
               </button>
@@ -466,7 +665,13 @@ export default function ProfileDashboardPage() {
                 <ShieldAlert className="w-5 h-5" />
                 <span>Confirmation de suppression</span>
               </h3>
-              <button onClick={() => setDeleteAccountModal(false)}>
+              <button
+                onClick={() => {
+                  setDeleteAccountModal(false);
+                  setOtpSent(false);
+                  setAccountDeleteOtp("");
+                }}
+              >
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
@@ -479,7 +684,8 @@ export default function ProfileDashboardPage() {
               <button
                 type="button"
                 onClick={handleRequestAccountDeletion}
-                className="w-full py-3 rounded-xl bg-brand-blue-800 text-white text-xs font-bold hover:bg-brand-blue-900"
+                disabled={isActionLoading}
+                className="w-full py-3 rounded-xl bg-brand-blue-800 text-white text-xs font-bold hover:bg-brand-blue-900 disabled:opacity-50"
               >
                 Recevoir le code OTP par email
               </button>
@@ -487,16 +693,18 @@ export default function ProfileDashboardPage() {
               <div className="space-y-3">
                 <input
                   type="text"
+                  inputMode="numeric"
                   maxLength={6}
                   value={accountDeleteOtp}
-                  onChange={(e) => setAccountDeleteOtp(e.target.value)}
+                  onChange={(e) => setAccountDeleteOtp(e.target.value.replace(/\D/g, ""))}
                   placeholder="Code OTP (6 chiffres)"
                   className="w-full text-center tracking-widest text-lg font-mono py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-rose-500"
                 />
                 <button
                   type="button"
                   onClick={handleConfirmAccountDeletion}
-                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow"
+                  disabled={isActionLoading}
+                  className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow disabled:opacity-50"
                 >
                   Supprimer définitivement mon compte
                 </button>

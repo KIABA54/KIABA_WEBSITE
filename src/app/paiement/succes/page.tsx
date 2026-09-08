@@ -2,16 +2,74 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
-import { CheckCircle2, FileText, ArrowRight, Home, Sparkles } from "lucide-react";
+import { Suspense, useEffect, useState } from "react";
+import { CheckCircle2, FileText, Home, Sparkles, Loader2 } from "lucide-react";
+
+const TYPE_LABELS: Record<string, string> = {
+  NEW_AD: "Publication d'annonce",
+  BOOST: "Mise en avant (Boost)",
+  RENEWAL: "Renouvellement d'annonce",
+  EDIT: "Modification d'annonce",
+};
+
+interface TransactionInfo {
+  type: string;
+  amount_fcfa: number;
+  payment_method: string | null;
+}
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
-  const ref = searchParams.get("ref") || `TXN-${Date.now()}`;
-  const amount = searchParams.get("amount") || "0";
-  const type = searchParams.get("type") || "paid";
 
-  const isFree = type === "free" || amount === "0";
+  // Notre propre flux "1ère annonce gratuite" (voir /annonces/nouvelle) nous
+  // redirige ici lui-même avec ces paramètres, qu'on peut faire confiance
+  // directement puisqu'ils viennent de notre propre réponse API.
+  const isFreeWelcome = searchParams.get("type") === "free";
+
+  // GeniusPay, lui, redirige avec "reference"/"status" (pas "ref"/"amount") —
+  // on ne fait jamais confiance à un montant venu de l'URL pour un paiement
+  // réel : on va chercher la vraie transaction côté serveur.
+  const reference = searchParams.get("reference") || searchParams.get("ref") || "";
+
+  const [transaction, setTransaction] = useState<TransactionInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(!isFreeWelcome && Boolean(reference));
+  const [lookupFailed, setLookupFailed] = useState(false);
+
+  useEffect(() => {
+    if (isFreeWelcome || !reference) return;
+    let cancelled = false;
+    fetch(`/api/transactions/lookup?reference=${encodeURIComponent(reference)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        if (!cancelled) setTransaction(data.transaction);
+      })
+      .catch(() => {
+        if (!cancelled) setLookupFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isFreeWelcome, reference]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-md mx-auto py-16 flex flex-col items-center gap-2 text-slate-500">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <p className="text-xs">Confirmation du paiement en cours...</p>
+      </div>
+    );
+  }
+
+  const displayAmount = isFreeWelcome ? 0 : transaction?.amount_fcfa ?? null;
+  const displayType = isFreeWelcome ? "Publication d'annonce" : TYPE_LABELS[transaction?.type || ""] || "Transaction";
+  const displayMethod = isFreeWelcome
+    ? "Gratuité Standard Nouveau Compte"
+    : transaction?.payment_method
+    ? `GeniusPay (${transaction.payment_method})`
+    : "GeniusPay";
 
   return (
     <div className="max-w-md mx-auto py-8 space-y-6">
@@ -22,17 +80,18 @@ function PaymentSuccessContent() {
 
         <div>
           <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 tracking-wider">
-            {isFree ? "Offre de Bienvenue Validée" : "Paiement Confirmé"}
+            {isFreeWelcome ? "Offre de Bienvenue Validée" : "Paiement Confirmé"}
           </span>
           <h1 className="text-xl font-black text-slate-900 mt-2">
-            Votre annonce est en ligne !
+            {displayType} réussie !
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Elle est immédiatement visible par l'ensemble des visiteurs sur KIABA RENCONTRE.
+            {lookupFailed
+              ? "Le paiement a été reçu ; les détails complets vous ont été envoyés par email."
+              : "Elle est immédiatement visible par l'ensemble des visiteurs sur KIABA RENCONTRE."}
           </p>
         </div>
 
-        {/* FACTURETTE / REÇU OFFICIEL */}
         <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left space-y-2.5 text-xs">
           <div className="flex items-center justify-between border-b pb-2 font-bold text-slate-900">
             <span className="flex items-center gap-1">
@@ -44,29 +103,31 @@ function PaymentSuccessContent() {
             </span>
           </div>
 
-          <div className="flex justify-between">
-            <span className="text-slate-500">Référence :</span>
-            <span className="font-mono font-bold text-slate-800">{ref}</span>
-          </div>
+          {reference && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Référence :</span>
+              <span className="font-mono font-bold text-slate-800 truncate max-w-[60%]">{reference}</span>
+            </div>
+          )}
 
           <div className="flex justify-between">
             <span className="text-slate-500">Plateforme de paiement :</span>
-            <span className="font-bold text-slate-800">
-              {isFree ? "Gratuité Standard Nouveau Compte" : "GeniusPay (Mobile Money / Carte)"}
-            </span>
+            <span className="font-bold text-slate-800">{displayMethod}</span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-slate-500">Statut :</span>
-            <span className="font-bold text-emerald-600 flex items-center gap-1">
-              <span>Payé avec succès</span>
-            </span>
+            <span className="font-bold text-emerald-600">Payé avec succès</span>
           </div>
 
           <div className="flex justify-between pt-2 border-t border-slate-200 font-extrabold text-sm">
             <span>Montant réglé :</span>
             <span className="text-brand-pink-600">
-              {isFree ? "0 FCFA (Offert)" : `${Number(amount).toLocaleString()} FCFA`}
+              {displayAmount === null
+                ? "—"
+                : displayAmount === 0
+                ? "0 FCFA (Offert)"
+                : `${displayAmount.toLocaleString()} FCFA`}
             </span>
           </div>
         </div>
@@ -75,7 +136,6 @@ function PaymentSuccessContent() {
           Un email récapitulatif contenant votre facturette officielle a été envoyé sur votre adresse email.
         </p>
 
-        {/* ACTIONS */}
         <div className="pt-2 flex flex-col gap-2.5">
           <Link
             href="/"

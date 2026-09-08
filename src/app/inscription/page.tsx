@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GENDERS } from "@/lib/constants";
@@ -15,8 +15,10 @@ import {
   CheckCircle2,
   Sparkles,
   ArrowRight,
-  RefreshCw,
+  Loader2,
 } from "lucide-react";
+
+const MIN_PASSWORD_LENGTH = 8;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -29,20 +31,24 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState<"Femme" | "Homme" | "Transgenre">("Femme");
-  const [profilePhoto, setProfilePhoto] = useState<string>(
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80"
-  );
+  const [profilePhoto, setProfilePhoto] = useState<string>("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Code OTP
   const [otpCode, setOtpCode] = useState(["", "", "", "", "", ""]);
-  const [generatedOtp, setGeneratedOtp] = useState("123456");
-  const [countdown, setCountdown] = useState(60);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // États UI
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   // Calcul d'âge strict (+18 ans obligatoire)
   const isAdult = (dateString: string) => {
@@ -57,16 +63,40 @@ export default function RegisterPage() {
     return age >= 18;
   };
 
-  // Simulation upload photo de profil obligatoire
-  const handlePhotoUpload = () => {
-    const avatars = [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=500&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=500&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80",
-    ];
-    const newAvatar = avatars[Math.floor(Math.random() * avatars.length)];
-    setProfilePhoto(newAvatar);
+  // Upload réel de la photo de profil (sans session : le compte n'existe pas encore)
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErrorMsg("");
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erreur lors de l'envoi de la photo.");
+        return;
+      }
+      setProfilePhoto(data.url);
+    } catch {
+      setErrorMsg("Erreur réseau lors de l'envoi de la photo.");
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const sendOtp = async () => {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, birthDate, gender, profilePhoto, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Une erreur est survenue lors de l'inscription.");
+    }
   };
 
   // Soumission étape 1 : Envoi du code OTP
@@ -90,8 +120,8 @@ export default function RegisterPage() {
       setErrorMsg("La photo de profil est obligatoire dès l'inscription.");
       return;
     }
-    if (password.length < 6) {
-      setErrorMsg("Le mot de passe doit comporter au moins 6 caractères.");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setErrorMsg(`Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`);
       return;
     }
     if (password !== confirmPassword) {
@@ -100,35 +130,26 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username,
-          email,
-          birthDate,
-          gender,
-          profilePhoto,
-          password,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(data.error || "Une erreur est survenue lors de l'inscription.");
-        setIsLoading(false);
-        return;
-      }
-
-      if (data.otp) {
-        setGeneratedOtp(data.otp);
-      }
+      await sendOtp();
+      setResendCooldown(60);
       setStep(2);
-    } catch {
-      // Fallback
-      setStep(2);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setErrorMsg("");
+    setIsLoading(true);
+    try {
+      await sendOtp();
+      setResendCooldown(60);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +162,6 @@ export default function RegisterPage() {
     newOtp[index] = val.slice(-1);
     setOtpCode(newOtp);
 
-    // Focus automatique case suivante
     if (val && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
@@ -160,32 +180,23 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-
     try {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          code: entered,
-          username,
-          birthDate,
-          gender,
-          profilePhoto,
-        }),
+        body: JSON.stringify({ email, code: entered }),
       });
 
       const data = await res.json();
-      if (!res.ok && entered !== generatedOtp && entered !== "123456") {
+      if (!res.ok) {
         setErrorMsg(data.error || "Code OTP incorrect ou expiré.");
-        setIsLoading(false);
         return;
       }
 
-      // Succès ! Compte et profil créés automatiquement
+      // Le cookie de session est déjà posé par l'API (auto-login).
       setStep(3);
     } catch {
-      setStep(3);
+      setErrorMsg("Erreur réseau. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
     }
@@ -227,26 +238,33 @@ export default function RegisterPage() {
           {/* PHOTO DE PROFIL OBLIGATOIRE DÈS L'INSCRIPTION */}
           <div className="flex flex-col items-center justify-center text-center pb-3 border-b border-slate-100">
             <div className="relative group">
-              <img
-                src={profilePhoto}
-                alt="Profil"
-                className="w-20 h-20 rounded-full object-cover border-4 border-brand-pink-500 shadow-md"
-              />
-              <button
-                type="button"
-                onClick={handlePhotoUpload}
-                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-pink-500 text-white flex items-center justify-center shadow hover:bg-brand-pink-600 transition-colors"
-                title="Changer de photo"
+              <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-brand-pink-500 shadow-md bg-slate-100 flex items-center justify-center">
+                {isUploadingPhoto ? (
+                  <Loader2 className="w-6 h-6 text-brand-pink-500 animate-spin" />
+                ) : profilePhoto ? (
+                  <img src={profilePhoto} alt="Profil" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-6 h-6 text-slate-300" />
+                )}
+              </div>
+              <label
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-pink-500 text-white flex items-center justify-center shadow hover:bg-brand-pink-600 transition-colors cursor-pointer"
+                title="Choisir une photo"
               >
                 <Camera className="w-4 h-4" />
-              </button>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={handlePhotoUpload}
+                  disabled={isUploadingPhoto}
+                />
+              </label>
             </div>
             <p className="text-xs font-bold text-slate-800 mt-2">
               Photo de profil <span className="text-rose-500">* (Obligatoire)</span>
             </p>
-            <p className="text-[10px] text-slate-400">
-              Cliquez pour choisir votre photo d'avatar
-            </p>
+            <p className="text-[10px] text-slate-400">JPEG, PNG ou WEBP — 8 Mo max</p>
           </div>
 
           {/* Pseudo */}
@@ -336,7 +354,7 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 caractères"
+                placeholder={`Minimum ${MIN_PASSWORD_LENGTH} caractères`}
                 className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20"
                 required
               />
@@ -363,8 +381,8 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            disabled={isLoading || isUploadingPhoto}
+            className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isLoading ? (
               <span>Génération du code OTP...</span>
@@ -403,6 +421,7 @@ export default function RegisterPage() {
                 key={idx}
                 id={`otp-${idx}`}
                 type="text"
+                inputMode="numeric"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpChange(e.target.value, idx)}
@@ -411,14 +430,10 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Code de démonstration généré : <strong className="text-slate-800">{generatedOtp}</strong>
-          </p>
-
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isLoading ? (
               <span>Vérification du code...</span>
@@ -432,11 +447,22 @@ export default function RegisterPage() {
 
           <button
             type="button"
-            onClick={() => setStep(1)}
-            className="text-xs text-slate-500 hover:text-slate-800 underline"
+            onClick={handleResendOtp}
+            disabled={resendCooldown > 0 || isLoading}
+            className="text-xs text-slate-500 hover:text-slate-800 underline disabled:no-underline disabled:text-slate-300"
           >
-            Modifier mes informations
+            {resendCooldown > 0 ? `Renvoyer le code (${resendCooldown}s)` : "Renvoyer le code"}
           </button>
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="text-xs text-slate-400 hover:text-slate-600 underline"
+            >
+              Modifier mes informations
+            </button>
+          </div>
         </form>
       )}
 
@@ -460,20 +486,20 @@ export default function RegisterPage() {
           </div>
 
           <div className="pt-2 flex flex-col gap-2">
-            <Link
-              href="/annonces/nouvelle"
+            <button
+              onClick={() => router.push("/annonces/nouvelle")}
               className="w-full py-3 px-4 rounded-xl bg-brand-pink-500 hover:bg-brand-pink-600 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
             >
               <span>Publier mon annonce gratuite</span>
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
 
-            <Link
-              href="/profil"
+            <button
+              onClick={() => router.push("/profil")}
               className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors"
             >
               Accéder à mon espace profil
-            </Link>
+            </button>
           </div>
         </div>
       )}

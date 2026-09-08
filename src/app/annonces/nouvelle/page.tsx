@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, CLIENT_TYPES, CONTACT_CHANNELS, FORMULAS } from "@/lib/constants";
 import { validateAdContent } from "@/lib/moderation";
@@ -14,13 +13,14 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  ShieldAlert,
+  Loader2,
 } from "lucide-react";
+
+const MAX_PHOTOS = 5;
 
 export default function NewAdPage() {
   const router = useRouter();
 
-  // État du formulaire
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
@@ -29,31 +29,22 @@ export default function NewAdPage() {
   const [contactChannel, setContactChannel] = useState<"WHATSAPP" | "CALL" | "BOTH">("BOTH");
   const [acceptedClient, setAcceptedClient] = useState<"HOMME" | "FEMME" | "TRANSGENRE" | "TOUS">("HOMME");
 
-  // Catégorie & sous-catégories
   const [selectedCategory, setSelectedCategory] = useState<string>("escorte-girl");
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(["Vaginal"]);
 
-  // Photos (1 à 5 photos)
-  const [photos, setPhotos] = useState<string[]>([
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80",
-  ]);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  // Formule choisie
   const [selectedFormula, setSelectedFormula] = useState<"STANDARD" | "PRO" | "PRO_PLUS" | "VIP">("STANDARD");
 
-  // Simulation compte nouveau inscrit : 1ère annonce Standard gratuite
-  const [isFirstAdFree, setIsFirstAdFree] = useState(true);
-
-  // État d'erreur et de soumission
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Gestion des sous-catégories
   const activeCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
 
   const handleToggleSubcategory = (sub: string) => {
     if (selectedSubcategories.includes(sub)) {
-      if (selectedSubcategories.length === 1) return; // Garder au moins 1
+      if (selectedSubcategories.length === 1) return;
       setSelectedSubcategories(selectedSubcategories.filter((s) => s !== sub));
     } else {
       setSelectedSubcategories([...selectedSubcategories, sub]);
@@ -68,38 +59,44 @@ export default function NewAdPage() {
     }
   };
 
-  // Ajout de photo (simulation d'upload instantané)
-  const handleAddPhoto = () => {
-    if (photos.length >= 5) {
-      setErrorMsg("Vous ne pouvez ajouter que 5 photos maximum par annonce.");
+  // Upload réel d'une photo vers Supabase Storage
+  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (photos.length >= MAX_PHOTOS) {
+      setErrorMsg(`Vous ne pouvez ajouter que ${MAX_PHOTOS} photos maximum par annonce.`);
+      e.target.value = "";
       return;
     }
-    const sampleUrls = [
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&auto=format&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=800&auto=format&fit=crop&q=80",
-    ];
-    const randomUrl = sampleUrls[photos.length % sampleUrls.length];
-    setPhotos([...photos, randomUrl]);
+
     setErrorMsg("");
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/uploads", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Erreur lors de l'envoi de la photo.");
+        return;
+      }
+      setPhotos((prev) => [...prev, data.url]);
+    } catch {
+      setErrorMsg("Erreur réseau lors de l'envoi de la photo.");
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = "";
+    }
   };
 
   const handleRemovePhoto = (idx: number) => {
-    if (photos.length <= 1) {
-      setErrorMsg("Au moins 1 photo est obligatoire pour publier votre annonce.");
-      return;
-    }
     setPhotos(photos.filter((_, i) => i !== idx));
-    setErrorMsg("");
   };
 
-  // Soumission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
-    // Validations obligatoires
     if (!title.trim() || title.length < 10) {
       setErrorMsg("Le titre doit comporter au moins 10 caractères.");
       return;
@@ -125,7 +122,7 @@ export default function NewAdPage() {
       return;
     }
 
-    // Filtre automatique de modération (anti-haine, anti-racisme, sécurité)
+    // Feedback immédiat côté client — le vrai filtre fait foi côté serveur.
     const moderation = validateAdContent(title, description);
     if (!moderation.isValid) {
       setErrorMsg(moderation.reason || "Contenu rejeté par le filtre de sécurité.");
@@ -133,39 +130,47 @@ export default function NewAdPage() {
     }
 
     setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/ads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description,
+          city,
+          address,
+          phone_number: phoneNumber,
+          contact_channels: contactChannel,
+          accepted_clients: acceptedClient,
+          category: selectedCategory,
+          subcategories: selectedSubcategories,
+          formula: selectedFormula,
+          photos,
+        }),
+      });
 
-    const isFree = selectedFormula === "STANDARD" && isFirstAdFree;
+      const data = await res.json();
 
-    if (isFree) {
-      // Publication GRATUITE instantanée !
-      setTimeout(() => {
-        setIsSubmitting(false);
-        router.push("/paiement/succes?ref=FREE-WELCOME&type=free");
-      }, 1000);
-    } else {
-      // Paiement GeniusPay requis
-      const amount = FORMULAS[selectedFormula].price;
-      try {
-        const res = await fetch("/api/payments/initiate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount,
-            formula: selectedFormula,
-            title,
-            phone: phoneNumber,
-            action_type: "NEW_AD",
-          }),
-        });
-        const data = await res.json();
-        if (data.checkout_url) {
-          window.location.href = data.checkout_url;
-        } else {
-          router.push(`/paiement/simulation?amount=${amount}&ref=TXN-${Date.now()}`);
-        }
-      } catch {
-        router.push(`/paiement/simulation?amount=${amount}&ref=TXN-${Date.now()}`);
+      if (res.status === 401) {
+        router.push("/connexion?next=/annonces/nouvelle");
+        return;
       }
+      if (!res.ok) {
+        setErrorMsg(data.error || "Une erreur est survenue lors de la publication.");
+        return;
+      }
+
+      if (data.free) {
+        router.push("/paiement/succes?ref=FREE-WELCOME&type=free&amount=0");
+      } else if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        setErrorMsg("Réponse inattendue du serveur.");
+      }
+    } catch {
+      setErrorMsg("Erreur réseau. Veuillez réessayer.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -185,7 +190,6 @@ export default function NewAdPage() {
         </p>
       </div>
 
-      {/* MESSAGE D'ERREUR SI PRESENT */}
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-in fade-in">
           <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
@@ -203,7 +207,7 @@ export default function NewAdPage() {
               <span className="text-rose-500">*</span>
             </h2>
             <span className="text-xs font-bold text-slate-500">
-              {photos.length} / 5 photos (1 obligatoire)
+              {photos.length} / {MAX_PHOTOS} photos (1 obligatoire)
             </span>
           </div>
 
@@ -229,19 +233,28 @@ export default function NewAdPage() {
               </div>
             ))}
 
-            {photos.length < 5 && (
-              <button
-                type="button"
-                onClick={handleAddPhoto}
-                className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-brand-pink-400 hover:bg-brand-pink-50/50 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-pink-600 transition-all"
-              >
-                <Upload className="w-5 h-5" />
-                <span className="text-[10px] font-bold">+ Ajouter</span>
-              </button>
+            {photos.length < MAX_PHOTOS && (
+              <label className="aspect-square rounded-xl border-2 border-dashed border-slate-300 hover:border-brand-pink-400 hover:bg-brand-pink-50/50 flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-pink-600 transition-all cursor-pointer">
+                {isUploadingPhoto ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <Upload className="w-5 h-5" />
+                    <span className="text-[10px] font-bold">+ Ajouter</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={handleAddPhoto}
+                  disabled={isUploadingPhoto}
+                />
+              </label>
             )}
           </div>
           <p className="text-[11px] text-slate-400">
-            Format JPEG, PNG ou WEBP. Compression automatique ultra-rapide côté serveur.
+            Format JPEG, PNG ou WEBP. 8 Mo max par photo.
           </p>
         </div>
 
@@ -251,7 +264,6 @@ export default function NewAdPage() {
             Détails de l'annonce
           </h2>
 
-          {/* Titre */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Titre de l'annonce <span className="text-rose-500">*</span>
@@ -270,7 +282,6 @@ export default function NewAdPage() {
             </span>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Description complète <span className="text-rose-500">*</span>
@@ -285,7 +296,6 @@ export default function NewAdPage() {
             />
           </div>
 
-          {/* VILLE (CHAMP LIBRE - STRICTEMENT SANS AUTO-COMPLÉTION FORCÉE) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
@@ -304,7 +314,6 @@ export default function NewAdPage() {
               </span>
             </div>
 
-            {/* Adresse du service */}
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Adresse / Quartier du service <span className="text-rose-500">*</span>
@@ -320,7 +329,6 @@ export default function NewAdPage() {
             </div>
           </div>
 
-          {/* NUMÉRO DE TÉLÉPHONE & CANAL */}
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Numéro de téléphone <span className="text-rose-500">*</span>
@@ -361,7 +369,6 @@ export default function NewAdPage() {
             </div>
           </div>
 
-          {/* CLIENTÈLE ACCEPTÉE */}
           <div className="pt-2 border-t border-slate-100">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Clientèle acceptée <span className="text-rose-500">*</span>
@@ -442,21 +449,13 @@ export default function NewAdPage() {
 
         {/* SECTION 4 : CHOIX DE LA FORMULE DE PUBLICATION */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h2 className="text-sm font-bold text-slate-900">
-              Choisissez votre formule de visibilité
-            </h2>
-            {isFirstAdFree && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                1ère Annonce Standard Offerte !
-              </span>
-            )}
-          </div>
+          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+            Choisissez votre formule de visibilité
+          </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.values(FORMULAS).map((f) => {
               const isSelected = selectedFormula === f.id;
-              const isFreeStandard = f.id === "STANDARD" && isFirstAdFree;
 
               return (
                 <div
@@ -470,7 +469,6 @@ export default function NewAdPage() {
                       : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
-                  {/* Badge promo ou populaire */}
                   {f.isPopular && (
                     <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-brand-pink-500 text-white shadow-sm">
                       Le plus populaire
@@ -490,19 +488,9 @@ export default function NewAdPage() {
                   </div>
 
                   <div className="my-2">
-                    {isFreeStandard ? (
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-lg font-black text-emerald-600">0 FCFA</span>
-                        <span className="text-xs text-slate-400 line-through">1 200 FCFA</span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
-                          Gratuit (Bienvenue)
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-base font-black text-brand-pink-600">
-                        {f.price.toLocaleString()} FCFA
-                      </span>
-                    )}
+                    <span className="text-base font-black text-brand-pink-600">
+                      {f.price.toLocaleString()} FCFA
+                    </span>
                   </div>
 
                   <p className="text-[11px] text-slate-500 leading-snug">
@@ -512,35 +500,31 @@ export default function NewAdPage() {
               );
             })}
           </div>
+          <p className="text-[11px] text-slate-400">
+            Si votre 1ère annonce Standard gratuite est disponible, elle sera appliquée automatiquement.
+          </p>
         </div>
 
         {/* BOUTON DE SOUMISSION / PAIEMENT GENIUSPAY */}
         <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span>Total à régler :</span>
+            <span>Formule sélectionnée :</span>
             <span className="text-xl font-black text-brand-pink-400">
-              {selectedFormula === "STANDARD" && isFirstAdFree
-                ? "0 FCFA (Offert)"
-                : `${FORMULAS[selectedFormula].price.toLocaleString()} FCFA`}
+              {FORMULAS[selectedFormula].price.toLocaleString()} FCFA
             </span>
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-pink-600 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2"
+            disabled={isSubmitting || isUploadingPhoto}
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-pink-600 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isSubmitting ? (
               <span>Traitement sécurisé en cours...</span>
-            ) : selectedFormula === "STANDARD" && isFirstAdFree ? (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                <span>Publier mon annonce gratuitement</span>
-              </>
             ) : (
               <>
                 <Lock className="w-4 h-4" />
-                <span>Payer et publier via GeniusPay (Wave, Orange, MTN, Carte)</span>
+                <span>Publier via GeniusPay (Wave, Orange, MTN, Carte)</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -548,7 +532,7 @@ export default function NewAdPage() {
 
           <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1">
             <Lock className="w-3 h-3 text-emerald-400" />
-            <span>Paiement sécurisé crypté par GeniusPay. Publication automatique dès confirmation.</span>
+            <span>Paiement sécurisé crypté par GeniusPay. Publication automatique dès confirmation (ou gratuite si vous y êtes éligible).</span>
           </p>
         </div>
       </form>

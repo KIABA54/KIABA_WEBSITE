@@ -99,8 +99,8 @@ export async function POST(req: Request) {
       currency: "XOF",
       description: `${actionType} annonce - KIABA RENCONTRE`,
       customer: { phone: ad.phone_number },
-      success_url: `${appUrl}/paiement/succes?ref={reference}`,
-      error_url: `${appUrl}/paiement/echec?ref={reference}`,
+      success_url: `${appUrl}/paiement/succes`,
+      error_url: `${appUrl}/paiement/echec`,
       metadata: { action_type: actionType, ad_id: ad.id },
     });
 

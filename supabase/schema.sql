@@ -88,7 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_ad_photos_ad_id ON ad_photos(ad_id);
 -- 6. Table des transactions GeniusPay
 CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     ad_id UUID REFERENCES ads(id) ON DELETE SET NULL,
     geniuspay_reference VARCHAR(100) UNIQUE,
     type VARCHAR(30) NOT NULL CHECK (type IN ('NEW_AD', 'BOOST', 'EDIT', 'RENEWAL')),

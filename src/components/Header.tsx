@@ -2,16 +2,38 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, LayoutGrid, LogIn, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, LayoutGrid, LogIn, ArrowLeft, UserCircle2 } from "lucide-react";
 import { SITE_LOGO_URL } from "@/lib/constants";
 
 interface HeaderProps {
   adCount?: number;
 }
 
+function useIsAuthenticated() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (!cancelled) setIsAuthenticated(res.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setIsAuthenticated(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return isAuthenticated;
+}
+
 export default function Header({ adCount = 632 }: HeaderProps) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isAuthenticated = useIsAuthenticated();
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-slate-200 shadow-sm">
@@ -50,11 +72,11 @@ export default function Header({ adCount = 632 }: HeaderProps) {
             </Link>
 
             <Link
-              href="/connexion"
+              href={isAuthenticated ? "/profil" : "/connexion"}
               className="flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-brand-blue-800 hover:bg-brand-blue-900 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-600 focus-visible:ring-offset-2"
             >
-              <LogIn className="w-4 h-4" aria-hidden="true" />
-              <span>Se connecter</span>
+              {isAuthenticated ? <UserCircle2 className="w-4 h-4" aria-hidden="true" /> : <LogIn className="w-4 h-4" aria-hidden="true" />}
+              <span>{isAuthenticated ? "Mon profil" : "Se connecter"}</span>
             </Link>
           </div>
         </div>
@@ -91,11 +113,11 @@ export default function Header({ adCount = 632 }: HeaderProps) {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/connexion"
+              href={isAuthenticated ? "/profil" : "/connexion"}
               className="flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl border border-brand-blue-800 text-brand-blue-800 hover:bg-brand-blue-50 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-600 focus-visible:ring-offset-2"
             >
-              <LogIn className="w-4 h-4" aria-hidden="true" />
-              <span>Se connecter</span>
+              {isAuthenticated ? <UserCircle2 className="w-4 h-4" aria-hidden="true" /> : <LogIn className="w-4 h-4" aria-hidden="true" />}
+              <span>{isAuthenticated ? "Mon profil" : "Se connecter"}</span>
             </Link>
             <Link
               href="/annonces/nouvelle"

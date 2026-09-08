@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -22,10 +23,25 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || "Email ou mot de passe incorrect.");
+        return;
+      }
+      const next = searchParams.get("next");
+      router.push(next && next.startsWith("/") ? next : "/profil");
+      router.refresh();
+    } catch {
+      setErrorMsg("Erreur réseau. Veuillez réessayer.");
+    } finally {
       setIsLoading(false);
-      router.push("/profil");
-    }, 800);
+    }
   };
 
   return (
@@ -112,5 +128,13 @@ export default function LoginPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-12 text-sm text-slate-500">Chargement...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
