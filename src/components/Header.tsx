@@ -6,10 +6,6 @@ import { useEffect, useState } from "react";
 import { Plus, LayoutGrid, LogIn, ArrowLeft, UserCircle2 } from "lucide-react";
 import { SITE_LOGO_URL } from "@/lib/constants";
 
-interface HeaderProps {
-  adCount?: number;
-}
-
 function useIsAuthenticated() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -30,10 +26,34 @@ function useIsAuthenticated() {
   return isAuthenticated;
 }
 
-export default function Header({ adCount = 632 }: HeaderProps) {
+/** Nombre réel d'annonces en ligne — jamais de chiffre en dur dans l'en-tête. */
+function useAdCount() {
+  const [adCount, setAdCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/ads/stats")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        if (!cancelled) setAdCount(data.total);
+      })
+      .catch(() => {
+        if (!cancelled) setAdCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return adCount;
+}
+
+export default function Header() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isAuthenticated = useIsAuthenticated();
+  const adCount = useAdCount();
+  const adCountLabel = adCount === null ? "Annonces" : `${adCount} annonce${adCount === 1 ? "" : "s"}`;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b border-slate-200 shadow-sm">
@@ -68,7 +88,7 @@ export default function Header({ adCount = 632 }: HeaderProps) {
               className="flex items-center justify-center gap-2 min-h-11 px-3 rounded-xl border border-rose-300 hover:bg-rose-50/50 text-rose-800 text-xs sm:text-sm font-bold transition-colors shadow-sm bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
             >
               <LayoutGrid className="w-4 h-4 text-rose-600" aria-hidden="true" />
-              <span>{adCount} annonces</span>
+              <span>{adCountLabel}</span>
             </Link>
 
             <Link
@@ -106,7 +126,7 @@ export default function Header({ adCount = 632 }: HeaderProps) {
                 className="flex items-center gap-1.5 text-sm font-bold text-rose-800 hover:text-brand-pink-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
               >
                 <LayoutGrid className="w-4 h-4 text-rose-600" aria-hidden="true" />
-                <span>{adCount} annonces</span>
+                <span>{adCountLabel}</span>
               </Link>
             </nav>
           </div>
@@ -140,7 +160,7 @@ function Logo() {
       className="flex items-center flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- logo hébergé sur Supabase Storage, hors domaines optimisés par défaut */}
-      <img src={SITE_LOGO_URL} alt="Kiaba Rencontre" className="h-11 sm:h-12 w-auto" />
+      <img src={SITE_LOGO_URL} alt="Kiaba Rencontre" className="h-16 sm:h-[68px] w-auto" />
     </Link>
   );
 }

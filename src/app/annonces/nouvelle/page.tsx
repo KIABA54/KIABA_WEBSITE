@@ -505,7 +505,7 @@ export default function NewAdPage() {
           </p>
         </div>
 
-        {/* BOUTON DE SOUMISSION / PAIEMENT GENIUSPAY */}
+        {/* BOUTON DE SOUMISSION / PAIEMENT */}
         <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span>Formule sélectionnée :</span>
@@ -524,7 +524,7 @@ export default function NewAdPage() {
             ) : (
               <>
                 <Lock className="w-4 h-4" />
-                <span>Publier via GeniusPay (Wave, Orange, MTN, Carte)</span>
+                <span>Payer et publier (Wave, Orange, MTN, Carte)</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -532,7 +532,7 @@ export default function NewAdPage() {
 
           <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1">
             <Lock className="w-3 h-3 text-emerald-400" />
-            <span>Paiement sécurisé crypté par GeniusPay. Publication automatique dès confirmation (ou gratuite si vous y êtes éligible).</span>
+            <span>Paiement sécurisé et crypté. Publication automatique dès confirmation (ou gratuite si vous y êtes éligible).</span>
           </p>
         </div>
       </form>

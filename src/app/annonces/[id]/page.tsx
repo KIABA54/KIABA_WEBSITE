@@ -1,15 +1,10 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { INITIAL_ADS } from "@/lib/mockData";
-import { FORMULAS } from "@/lib/constants";
 import {
   MapPin,
-  User,
   Gem,
-  Calendar,
   Phone,
   MessageCircle,
   Share2,
@@ -18,20 +13,68 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
+import type { Ad } from "@/lib/types";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const ad = INITIAL_ADS.find((a) => a.id === resolvedParams.id) || INITIAL_ADS[0];
 
+  const [ad, setAd] = useState<Ad | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFoundError, setNotFoundError] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [copied, setCopied] = useState(false);
 
-  if (!ad) {
-    notFound();
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setNotFoundError(false);
+    fetch(`/api/ads/${resolvedParams.id}`)
+      .then(async (res) => {
+        if (res.status === 404) {
+          if (!cancelled) setNotFoundError(true);
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur de chargement.");
+        if (!cancelled) setAd(data.ad);
+      })
+      .catch(() => {
+        if (!cancelled) setNotFoundError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedParams.id]);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 flex flex-col items-center gap-2 text-slate-500">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <p className="text-xs">Chargement de l&apos;annonce...</p>
+      </div>
+    );
   }
 
-  const formulaConfig = FORMULAS[ad.formula];
+  if (notFoundError || !ad) {
+    return (
+      <div className="max-w-md mx-auto py-16 text-center space-y-4">
+        <p className="text-sm font-bold text-slate-800">Cette annonce n&apos;existe plus ou n&apos;est plus en ligne.</p>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-pink-500 hover:bg-brand-pink-600 text-white font-bold text-xs shadow-md transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Retour aux annonces</span>
+        </Link>
+      </div>
+    );
+  }
+
   const cleanPhone = ad.phone_number.replace(/\s+/g, "");
 
   const handleShare = () => {

@@ -235,6 +235,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const city = searchParams.get("city");
     const category = searchParams.get("category");
+    const q = searchParams.get("q")?.trim();
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20));
     const from = (page - 1) * limit;
@@ -251,6 +252,15 @@ export async function GET(req: Request) {
 
     if (city) query = query.eq("city", city);
     if (category) query = query.eq("category", category);
+    if (q) {
+      // Échappe les caractères réservés de la syntaxe .or() de Supabase
+      // (virgule/parenthèses) pour ne pas casser le filtre avec une entrée
+      // utilisateur libre.
+      const safe = q.replace(/[,()%]/g, " ").trim();
+      if (safe) {
+        query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%,city.ilike.%${safe}%`);
+      }
+    }
 
     const { data, error, count } = await query;
 

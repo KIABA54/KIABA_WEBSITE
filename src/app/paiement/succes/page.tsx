@@ -12,6 +12,17 @@ const TYPE_LABELS: Record<string, string> = {
   EDIT: "Modification d'annonce",
 };
 
+// Libellés volontairement génériques : le nom du prestataire de paiement
+// n'est pas mis en avant côté utilisateur.
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  mobile_money: "Mobile Money",
+  wave: "Wave",
+  orange_money: "Orange Money",
+  mtn_money: "MTN MoMo",
+  moov_money: "Moov Money",
+  card: "Carte bancaire",
+};
+
 interface TransactionInfo {
   type: string;
   amount_fcfa: number;
@@ -67,9 +78,7 @@ function PaymentSuccessContent() {
   const displayType = isFreeWelcome ? "Publication d'annonce" : TYPE_LABELS[transaction?.type || ""] || "Transaction";
   const displayMethod = isFreeWelcome
     ? "Gratuité Standard Nouveau Compte"
-    : transaction?.payment_method
-    ? `GeniusPay (${transaction.payment_method})`
-    : "GeniusPay";
+    : PAYMENT_METHOD_LABELS[transaction?.payment_method || ""] || "Paiement en ligne sécurisé";
 
   return (
     <div className="max-w-md mx-auto py-8 space-y-6">

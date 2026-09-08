@@ -41,7 +41,7 @@ export default function CityPills({ cities, selectedCity, onSelectCity, onViewAl
 
       <div
         role="list"
-        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center pb-2 scrollbar-none scroll-fade-x md:scroll-fade-none"
+        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center pt-3 pb-2 -mt-3 scrollbar-none scroll-fade-x md:scroll-fade-none"
       >
         {topCities.map((item) => {
           const isSelected = selectedCity.toLowerCase() === item.name.toLowerCase();

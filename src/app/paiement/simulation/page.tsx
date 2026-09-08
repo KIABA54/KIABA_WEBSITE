@@ -24,11 +24,11 @@ function PaymentSimulationContent() {
 
   return (
     <div className="max-w-md mx-auto py-6 space-y-6">
-      {/* HEADER GENIUSPAY BRANDED */}
+      {/* HEADER PAIEMENT */}
       <div className="text-center">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-white text-xs font-bold mb-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>GeniusPay Checkout Sécurisé</span>
+          <span>Paiement Sécurisé</span>
         </div>
         <h1 className="text-xl font-black text-slate-900">
           Règlement KIABA RENCONTRE
@@ -123,7 +123,7 @@ function PaymentSimulationContent() {
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
         >
           {isProcessing ? (
-            <span>Traitement GeniusPay en cours...</span>
+            <span>Traitement en cours...</span>
           ) : (
             <>
               <Lock className="w-4 h-4" />
@@ -133,7 +133,7 @@ function PaymentSimulationContent() {
         </button>
 
         <p className="text-[11px] text-slate-400 text-center">
-          Transaction chiffrée SSL 256-bit par GeniusPay.ci
+          Transaction chiffrée SSL 256-bit
         </p>
       </div>
     </div>

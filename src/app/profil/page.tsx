@@ -617,7 +617,7 @@ export default function ProfileDashboardPage() {
                 disabled={isActionLoading}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
               >
-                Payer via GeniusPay
+                Payer et booster
               </button>
             </div>
           </div>
