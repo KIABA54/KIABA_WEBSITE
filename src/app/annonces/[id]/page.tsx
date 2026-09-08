@@ -1,87 +1,57 @@
-"use client";
-
-import { use, useEffect, useState } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  MapPin,
-  Gem,
-  Phone,
-  MessageCircle,
-  Share2,
-  ArrowLeft,
-  Sparkles,
-  ShieldAlert,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-} from "lucide-react";
-import type { Ad } from "@/lib/types";
-import AdCard, { AdCardSkeleton } from "@/components/AdCard";
+import { MapPin, Gem, Phone, MessageCircle, ArrowLeft, ShieldAlert } from "lucide-react";
+import AdCard from "@/components/AdCard";
+import AdGallery from "@/components/AdGallery";
+import ShareButton from "@/components/ShareButton";
 import { getCityLabel } from "@/lib/constants";
+import { getAdById, getSimilarAds } from "@/lib/supabase/queries";
 
-export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
 
-  const [ad, setAd] = useState<Ad | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFoundError, setNotFoundError] = useState(false);
-  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
-  const [copied, setCopied] = useState(false);
-  const [similarAds, setSimilarAds] = useState<Ad[] | null>(null);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const ad = await getAdById(id);
 
-  useEffect(() => {
-    let cancelled = false;
-    setIsLoading(true);
-    setNotFoundError(false);
-    fetch(`/api/ads/${resolvedParams.id}`)
-      .then(async (res) => {
-        if (res.status === 404) {
-          if (!cancelled) setNotFoundError(true);
-          return;
-        }
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Erreur de chargement.");
-        if (!cancelled) setAd(data.ad);
-      })
-      .catch(() => {
-        if (!cancelled) setNotFoundError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [resolvedParams.id]);
-
-  useEffect(() => {
-    if (!ad) return;
-    let cancelled = false;
-    setSimilarAds(null);
-    fetch(`/api/ads?category=${encodeURIComponent(ad.category)}&exclude_id=${ad.id}&limit=4`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Erreur de chargement.");
-        if (!cancelled) setSimilarAds(data.ads);
-      })
-      .catch(() => {
-        if (!cancelled) setSimilarAds([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [ad?.id, ad?.category]);
-
-  if (isLoading) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 flex flex-col items-center gap-2 text-slate-500">
-        <Loader2 className="w-6 h-6 animate-spin" />
-        <p className="text-xs">Chargement de l&apos;annonce...</p>
-      </div>
-    );
+  if (!ad) {
+    return { title: "Annonce introuvable" };
   }
 
-  if (notFoundError || !ad) {
+  const cityLabel = getCityLabel(ad.city);
+  // Le <title> passe par le template du layout racine (title.template),
+  // qui ajoute déjà "| KIABA RENCONTRE" — ne pas le répéter ici. En
+  // revanche openGraph.title/twitter.title ne sont PAS templatés par
+  // Next.js : ces champs veulent une chaîne complète, donc ils le portent.
+  const pageTitle = `${ad.title} — ${cityLabel}`;
+  const socialTitle = `${pageTitle} | KIABA RENCONTRE`;
+  const description = ad.description.slice(0, 155);
+
+  return {
+    title: pageTitle,
+    description,
+    alternates: { canonical: `/annonces/${ad.id}` },
+    openGraph: {
+      title: socialTitle,
+      description,
+      type: "article",
+      images: ad.photos[0] ? [{ url: ad.photos[0] }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: socialTitle,
+      description,
+      images: ad.photos[0] ? [ad.photos[0]] : undefined,
+    },
+  };
+}
+
+export default async function AdDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const ad = await getAdById(id);
+
+  if (!ad) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-4">
         <p className="text-sm font-bold text-slate-800">Cette annonce n&apos;existe plus ou n&apos;est plus en ligne.</p>
@@ -96,24 +66,33 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
     );
   }
 
+  const similarAds = await getSimilarAds(ad.category, ad.id, 4);
+  const cityLabel = getCityLabel(ad.city);
   const cleanPhone = ad.phone_number.replace(/\s+/g, "");
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: ad.title,
-        text: `Découvrez cette annonce sur KIABA RENCONTRE : ${ad.title}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.ci-kiaba.com/" },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: cityLabel,
+        item: `https://www.ci-kiaba.com/?city=${ad.city}`,
+      },
+      { "@type": "ListItem", position: 3, name: ad.title },
+    ],
   };
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-12">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+
       {/* RETOUR & PARTAGE */}
       <div className="flex items-center justify-between">
         <Link
@@ -124,96 +103,11 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           <span>Retour aux annonces</span>
         </Link>
 
-        <button
-          onClick={handleShare}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
-        >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>{copied ? "Lien copié !" : "Partager"}</span>
-        </button>
+        <ShareButton title={ad.title} />
       </div>
 
       {/* GALERIE PHOTOS (1 à 5 photos) */}
-      <div className="relative bg-slate-900 rounded-2xl overflow-hidden shadow-lg border border-slate-800">
-        <div className="relative aspect-[4/3] sm:aspect-[16/10] w-full">
-          <img
-            src={ad.photos[activePhotoIdx]}
-            alt={ad.title}
-            className="w-full h-full object-contain sm:object-cover"
-          />
-
-          {/* BADGE FORMULE OFFICIEL */}
-          <div className="absolute top-3 left-3">
-            {ad.formula === "VIP" && (
-              <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-pink-500 to-rose-600 text-white shadow-lg flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 fill-white" />
-                <span>ANNONCE VIP</span>
-              </span>
-            )}
-            {ad.formula === "PRO_PLUS" && (
-              <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-pink-500 to-brand-blue-800 text-white shadow-lg">
-                ANNONCE PRO (+)
-              </span>
-            )}
-            {ad.formula === "PRO" && (
-              <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-brand-blue-800 text-white shadow-lg">
-                ANNONCE PRO
-              </span>
-            )}
-            {ad.is_boosted && (
-              <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-emerald-600 text-white shadow-lg ml-1">
-                BOOSTÉE ⚡
-              </span>
-            )}
-          </div>
-
-          {/* NAVIGATION FLECHES SI MULTIPLES PHOTOS */}
-          {ad.photos.length > 1 && (
-            <>
-              <button
-                onClick={() =>
-                  setActivePhotoIdx((prev) => (prev === 0 ? ad.photos.length - 1 : prev - 1))
-                }
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() =>
-                  setActivePhotoIdx((prev) => (prev === ad.photos.length - 1 ? 0 : prev + 1))
-                }
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Indicateur 1/X */}
-              <div className="absolute bottom-3 right-3 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-[11px] font-bold text-white">
-                {activePhotoIdx + 1} / {ad.photos.length}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* THUMBNAILS SI PLUSIEURS PHOTOS */}
-        {ad.photos.length > 1 && (
-          <div className="p-2 bg-slate-950 flex gap-2 overflow-x-auto justify-center">
-            {ad.photos.map((url, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActivePhotoIdx(idx)}
-                className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
-                  activePhotoIdx === idx
-                    ? "border-brand-pink-500 scale-105"
-                    : "border-transparent opacity-60 hover:opacity-100"
-                }`}
-              >
-                <img src={url} alt="" className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <AdGallery photos={ad.photos} title={ad.title} formula={ad.formula} isBoosted={ad.is_boosted} />
 
       {/* TITRE & AUTEUR */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
@@ -244,7 +138,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
             {/* Ville & Adresse */}
             <div className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500" />
-              <span className="font-semibold text-slate-900">{getCityLabel(ad.city)}</span>
+              <span className="font-semibold text-slate-900">{cityLabel}</span>
               {ad.address && <span className="text-slate-500">({ad.address})</span>}
             </div>
 
@@ -331,15 +225,15 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* ANNONCES SIMILAIRES */}
-      {(similarAds === null || similarAds.length > 0) && (
+      {similarAds.length > 0 && (
         <div className="space-y-3 pt-2">
           <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900">
             Annonces similaires
           </h2>
           <div className="flex flex-col items-center gap-3">
-            {similarAds === null
-              ? Array.from({ length: 2 }).map((_, i) => <AdCardSkeleton key={i} />)
-              : similarAds.map((similarAd) => <AdCard key={similarAd.id} ad={similarAd} />)}
+            {similarAds.map((similarAd) => (
+              <AdCard key={similarAd.id} ad={similarAd} />
+            ))}
           </div>
         </div>
       )}

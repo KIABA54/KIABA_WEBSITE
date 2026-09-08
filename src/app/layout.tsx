@@ -5,12 +5,32 @@ import Footer from "@/components/Footer";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
 import { SITE_LOGO_URL } from "@/lib/constants";
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.ci-kiaba.com";
+
 export const metadata: Metadata = {
-  title: "KIABA RENCONTRE — Petites Annonces Adultes",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "KIABA RENCONTRE — Petites Annonces Adultes en Côte d'Ivoire",
+    // Permet à chaque page de définir juste son propre segment de titre
+    // (ex: generateMetadata sur une annonce) sans répéter le nom du site.
+    template: "%s | KIABA RENCONTRE",
+  },
   description: "Plateforme de petites annonces pour adultes rapide, discrète et sécurisée.",
   icons: {
     icon: SITE_LOGO_URL,
     apple: SITE_LOGO_URL,
+  },
+  openGraph: {
+    siteName: "KIABA RENCONTRE",
+    locale: "fr_CI",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

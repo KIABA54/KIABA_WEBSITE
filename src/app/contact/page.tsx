@@ -1,7 +1,8 @@
 import { Mail, ShieldAlert } from "lucide-react";
 
 export const metadata = {
-  title: "Contactez-nous — KIABA RENCONTRE",
+  // Le layout racine ajoute déjà "| KIABA RENCONTRE" via son title.template.
+  title: "Contactez-nous",
 };
 
 export default function ContactPage() {

@@ -1,7 +1,8 @@
 import { Heart, ShieldCheck, Zap } from "lucide-react";
 
 export const metadata = {
-  title: "À propos — KIABA RENCONTRE",
+  // Le layout racine ajoute déjà "| KIABA RENCONTRE" via son title.template.
+  title: "À propos",
 };
 
 export default function AboutPage() {

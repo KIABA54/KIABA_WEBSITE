@@ -1,5 +1,6 @@
 export const metadata = {
-  title: "Conditions générales — KIABA RENCONTRE",
+  // Le layout racine ajoute déjà "| KIABA RENCONTRE" via son title.template.
+  title: "Conditions générales",
 };
 
 const SECTIONS = [
