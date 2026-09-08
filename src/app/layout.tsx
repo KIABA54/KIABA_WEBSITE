@@ -3,7 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
-import { SITE_LOGO_URL } from "@/lib/constants";
+import { SITE_FAVICON_URL, SITE_OG_IMAGE_URL } from "@/lib/constants";
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://www.ci-kiaba.com";
 
@@ -17,16 +17,21 @@ export const metadata: Metadata = {
   },
   description: "Plateforme de petites annonces pour adultes rapide, discrète et sécurisée.",
   icons: {
-    icon: SITE_LOGO_URL,
-    apple: SITE_LOGO_URL,
+    icon: SITE_FAVICON_URL,
+    apple: SITE_FAVICON_URL,
   },
   openGraph: {
     siteName: "KIABA RENCONTRE",
     locale: "fr_CI",
     type: "website",
+    // Image par défaut pour tout partage de lien — les pages qui ont leur
+    // propre visuel plus pertinent (ex: une annonce et sa photo) écrasent
+    // ce champ dans leur propre generateMetadata().
+    images: [{ url: SITE_OG_IMAGE_URL }],
   },
   twitter: {
     card: "summary_large_image",
+    images: [SITE_OG_IMAGE_URL],
   },
   robots: {
     index: true,

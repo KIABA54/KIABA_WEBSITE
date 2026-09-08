@@ -9,31 +9,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Palette rouge/noir (remplace l'ancienne rose/bleu). Les clés
+        // "pink"/"blue" sont gardées telles quelles — des dizaines de
+        // composants utilisent déjà `brand-pink-*`/`brand-blue-*` partout
+        // dans le site — seules les VALEURS changent, donc tout le site
+        // (boutons, badges, textes...) suit automatiquement sans avoir à
+        // toucher chaque fichier individuellement.
         brand: {
           pink: {
-            50: "#FDF2F8",
-            100: "#FCE7F3",
-            200: "#FBCFE8",
-            300: "#F472B6",
-            400: "#F259A0",
-            500: "#EC4899",
-            600: "#DB2777",
-            700: "#BE185D",
-            800: "#9D174D",
-            900: "#831843",
+            // → ROUGE (remplace l'ancien rose)
+            50: "#FEF2F2",
+            100: "#FEE2E2",
+            200: "#FECACA",
+            300: "#FCA5A5",
+            400: "#F87171",
+            500: "#EF4444",
+            600: "#DC2626",
+            700: "#B91C1C",
+            800: "#991B1B",
+            900: "#7F1D1D",
           },
           blue: {
-            50: "#EFF6FF",
-            100: "#DBEAFE",
-            200: "#BFDBFE",
-            300: "#93C5FD",
-            400: "#60A5FA",
-            500: "#3B82F6",
-            600: "#2563EB",
-            700: "#1D4ED8",
-            800: "#1E40AF",
-            900: "#1E3A8A",
-            950: "#0F172A",
+            // → NOIR / gris neutre (remplace l'ancien bleu)
+            50: "#F7F7F7",
+            100: "#EBEBEB",
+            200: "#D6D6D6",
+            300: "#B0B0B0",
+            400: "#7A7A7A",
+            500: "#4A4A4A",
+            600: "#2E2E2E",
+            700: "#1C1C1C",
+            800: "#101010",
+            900: "#000000",
+            950: "#000000",
           },
           cyan: {
             50: "#F0F9FF",
@@ -55,9 +63,9 @@ const config: Config = {
         "2xs": ["0.6875rem", { lineHeight: "1rem" }],
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 20px -8px rgba(30,58,138,0.15)",
-        "card-hover": "0 2px 6px 0 rgba(15,23,42,0.06), 0 14px 28px -10px rgba(30,58,138,0.24)",
-        "glow-pink": "0 8px 24px -6px rgba(236,72,153,0.45)",
+        card: "0 1px 2px 0 rgba(15,23,42,0.04), 0 8px 20px -8px rgba(0,0,0,0.18)",
+        "card-hover": "0 2px 6px 0 rgba(15,23,42,0.06), 0 14px 28px -10px rgba(0,0,0,0.28)",
+        "glow-pink": "0 8px 24px -6px rgba(239,68,68,0.45)",
         popover: "0 12px 40px -8px rgba(15,23,42,0.25)",
       },
       keyframes: {

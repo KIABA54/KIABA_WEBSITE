@@ -8,11 +8,14 @@ import { SITE_LOGO_URL } from "./constants";
 // Bords volontairement STRICTS/CARRÉS partout (aucun border-radius) —
 // choix de style explicite du client, à ne pas "adoucir".
 
+// Noms de clés gardés tels quels ("blueDeep"/"pink"...) pour ne pas devoir
+// renommer tous leurs usages ci-dessous — seules les valeurs suivent
+// désormais la nouvelle identité rouge/noir du site (remplace rose/bleu).
 const COLORS = {
-  blueDeep: "#1E3A8A",
-  blue: "#1E40AF",
-  pink: "#EC4899",
-  pinkDeep: "#BE185D",
+  blueDeep: "#101010",
+  blue: "#2E2E2E",
+  pink: "#EF4444",
+  pinkDeep: "#991B1B",
   ink: "#1F2430",
   inkSoft: "#5B5770",
   border: "#DDD8E6",

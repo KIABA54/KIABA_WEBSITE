@@ -28,7 +28,7 @@ export default function AboutPage() {
             <p className="font-bold text-slate-800">Rapide</p>
             <p className="text-[11px] text-slate-500 mt-0.5">Publication en quelques minutes</p>
           </div>
-          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-100 text-center">
+          <div className="p-3.5 rounded-xl bg-brand-blue-50 border border-brand-blue-100 text-center">
             <ShieldCheck className="w-5 h-5 text-brand-blue-800 mx-auto mb-1.5" />
             <p className="font-bold text-slate-800">Vérifié</p>
             <p className="text-[11px] text-slate-500 mt-0.5">Comptes confirmés par email</p>

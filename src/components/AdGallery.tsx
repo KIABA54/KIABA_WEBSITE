@@ -26,13 +26,13 @@ export default function AdGallery({ photos, title, formula, isBoosted }: AdGalle
         {/* BADGE FORMULE OFFICIEL */}
         <div className="absolute top-3 left-3">
           {formula === "VIP" && (
-            <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-pink-500 to-rose-600 text-white shadow-lg flex items-center gap-1">
+            <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-brand-pink-500 to-brand-pink-700 text-white shadow-lg flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 fill-white" />
               <span>ANNONCE VIP</span>
             </span>
           )}
           {formula === "PRO_PLUS" && (
-            <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-pink-500 to-brand-blue-800 text-white shadow-lg">
+            <span className="px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-gradient-to-r from-brand-pink-500 to-brand-blue-800 text-white shadow-lg">
               ANNONCE PRO (+)
             </span>
           )}

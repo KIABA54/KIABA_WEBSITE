@@ -496,7 +496,7 @@ export default function NewAdPage() {
                     </span>
                   )}
                   {f.id === "VIP" && (
-                    <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-sm">
+                    <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-brand-pink-700 text-white shadow-sm">
                       ⭐ Visibilité Maximale
                     </span>
                   )}
@@ -538,7 +538,7 @@ export default function NewAdPage() {
           <button
             type="submit"
             disabled={isSubmitting || isUploadingPhoto}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-pink-600 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-brand-pink-600 to-brand-pink-700 hover:from-brand-pink-600 hover:to-brand-pink-800 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isSubmitting ? (
               <span>Traitement sécurisé en cours...</span>

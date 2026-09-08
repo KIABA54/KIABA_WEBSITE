@@ -400,7 +400,7 @@ export default function RegisterPage() {
       {/* ÉTAPE 2 : VALIDATION CODE OTP À 6 CHIFFRES */}
       {step === 2 && (
         <form onSubmit={handleVerifyOtp} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 text-center">
-          <div className="w-12 h-12 mx-auto rounded-full bg-blue-50 text-brand-blue-800 flex items-center justify-center">
+          <div className="w-12 h-12 mx-auto rounded-full bg-brand-blue-50 text-brand-blue-800 flex items-center justify-center">
             <ShieldCheck className="w-6 h-6" />
           </div>
 

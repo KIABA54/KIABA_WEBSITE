@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import HomeAdsExplorer from "@/components/HomeAdsExplorer";
 import { getOnlineAdsPage, getAdsStats } from "@/lib/supabase/queries";
+import { SITE_OG_IMAGE_URL } from "@/lib/constants";
 
 const HOME_TITLE = "KIABA RENCONTRE — Petites annonces adultes en Côte d'Ivoire";
 const HOME_DESCRIPTION =
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
   title: { absolute: HOME_TITLE },
   description: HOME_DESCRIPTION,
   alternates: { canonical: "/" },
-  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION },
-  twitter: { title: HOME_TITLE, description: HOME_DESCRIPTION },
+  openGraph: { title: HOME_TITLE, description: HOME_DESCRIPTION, images: [{ url: SITE_OG_IMAGE_URL }] },
+  twitter: { title: HOME_TITLE, description: HOME_DESCRIPTION, images: [SITE_OG_IMAGE_URL] },
 };
 
 // Revalide périodiquement plutôt qu'à chaque requête : les annonces

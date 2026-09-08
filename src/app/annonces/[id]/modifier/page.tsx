@@ -531,7 +531,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
           <button
             type="submit"
             disabled={isSubmitting || isUploadingPhoto}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-pink-600 to-rose-600 hover:from-brand-pink-600 hover:to-rose-700 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 via-brand-pink-600 to-brand-pink-700 hover:from-brand-pink-600 hover:to-brand-pink-800 text-white font-extrabold text-sm shadow-lg shadow-brand-pink-500/30 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {isSubmitting ? (
               <span>Traitement sécurisé en cours...</span>

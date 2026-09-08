@@ -4,8 +4,15 @@
 
 export const SITE_NAME = "KIABA RENCONTRE";
 export const SITE_TAGLINE = "Petites annonces pour adultes en toute discrétion";
+// Logo affiché dans le header du site et l'en-tête des emails.
 export const SITE_LOGO_URL =
-  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/logsite.png";
+  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/logokiaba.png";
+// Icône d'onglet navigateur — distincte du logo (format carré adapté).
+export const SITE_FAVICON_URL =
+  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/favicon.png";
+// Image affichée quand un lien du site est partagé (Open Graph / Twitter Card).
+export const SITE_OG_IMAGE_URL =
+  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/kiabaog.png";
 
 // Âge minimum légal pour s'inscrire — site pour adultes uniquement. Vérifié
 // UNIQUEMENT côté client jusqu'ici (formulaire d'inscription) : sans ce
@@ -57,7 +64,7 @@ export const FORMULAS: Record<string, FormulaConfig> = {
     durationDays: 10,
     highlightDays: 7,
     badgeLabel: "PRO",
-    badgeColor: "bg-gradient-to-r from-blue-600 to-sky-500 text-white font-bold",
+    badgeColor: "bg-gradient-to-r from-brand-blue-800 to-brand-blue-600 text-white font-bold",
     description: "Durée 10 jours, mise en avant garantie pendant 7 jours",
   },
   PRO_PLUS: {
@@ -67,7 +74,7 @@ export const FORMULAS: Record<string, FormulaConfig> = {
     durationDays: 15,
     highlightDays: 15,
     badgeLabel: "PRO (+)",
-    badgeColor: "bg-gradient-to-r from-pink-500 to-blue-600 text-white font-bold",
+    badgeColor: "bg-gradient-to-r from-brand-pink-500 to-brand-blue-800 text-white font-bold",
     isPopular: true,
     description: "Durée 15 jours, mise en avant pendant TOUTE la durée de vie",
   },
@@ -78,7 +85,7 @@ export const FORMULAS: Record<string, FormulaConfig> = {
     durationDays: 30,
     highlightDays: 30,
     badgeLabel: "VIP",
-    badgeColor: "bg-gradient-to-r from-amber-500 via-pink-500 to-rose-600 text-white font-extrabold shadow-md",
+    badgeColor: "bg-gradient-to-r from-amber-500 via-brand-pink-500 to-brand-pink-700 text-white font-extrabold shadow-md",
     description: "Durée 30 jours, visibilité maximale et mise en avant permanente sur 30 jours",
   },
 };

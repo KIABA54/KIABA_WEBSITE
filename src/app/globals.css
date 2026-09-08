@@ -74,12 +74,12 @@ body {
 /* Consistent, visible keyboard focus ring across the site, on top of Tailwind's focus-visible
    utilities used within components for finer per-element control. */
 :focus-visible {
-  outline: 2px solid #ec4899;
+  outline: 2px solid #ef4444;
   outline-offset: 2px;
   border-radius: 2px;
 }
 
 ::selection {
-  background-color: #fbcfe8;
-  color: #831843;
+  background-color: #fecaca;
+  color: #7f1d1d;
 }
