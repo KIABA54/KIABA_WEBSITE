@@ -46,6 +46,7 @@ export interface Ad {
   boosted_at?: string | null;
   expires_at: string;
   highlight_expires_at?: string | null;
+  views: number;
   photos: string[];
   created_at: string;
   updated_at: string;

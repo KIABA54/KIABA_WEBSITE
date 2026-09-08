@@ -4,6 +4,7 @@ import { MapPin, Gem, Phone, MessageCircle, ArrowLeft, ShieldAlert } from "lucid
 import AdCard from "@/components/AdCard";
 import AdGallery from "@/components/AdGallery";
 import ShareButton from "@/components/ShareButton";
+import ViewTracker from "@/components/ViewTracker";
 import { getCityLabel } from "@/lib/constants";
 import { getAdById, getSimilarAds } from "@/lib/supabase/queries";
 
@@ -87,6 +88,7 @@ export default async function AdDetailPage({ params }: PageProps) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-12">
+      <ViewTracker adId={ad.id} />
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger

@@ -37,6 +37,7 @@ export interface AdRow {
   boosted_at: string | null;
   expires_at: string;
   highlight_expires_at: string | null;
+  views: number;
   ad_photos?: AdPhotoRow[] | null;
   created_at: string;
   updated_at: string;
@@ -70,6 +71,7 @@ export function mapAdRow(row: AdRow): Ad {
     boosted_at: row.boosted_at,
     expires_at: row.expires_at,
     highlight_expires_at: row.highlight_expires_at,
+    views: row.views,
     photos: (row.ad_photos || [])
       .slice()
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))

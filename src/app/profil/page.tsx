@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   LogOut,
   Loader2,
+  Eye,
 } from "lucide-react";
 
 export default function ProfileDashboardPage() {
@@ -406,8 +407,12 @@ export default function ProfileDashboardPage() {
                     <h3 className="text-xs sm:text-sm font-bold text-slate-900 line-clamp-1">
                       {ad.title}
                     </h3>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      {getCityLabel(ad.city)} • Expire le : {new Date(ad.expires_at).toLocaleDateString()}
+                    <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 flex-wrap">
+                      <span>{getCityLabel(ad.city)} • Expire le : {new Date(ad.expires_at).toLocaleDateString()}</span>
+                      <span className="inline-flex items-center gap-0.5 font-bold text-slate-600">
+                        <Eye className="w-3 h-3" aria-hidden="true" />
+                        {ad.views} vue{ad.views > 1 ? "s" : ""}
+                      </span>
                     </p>
                   </div>
                 </div>
