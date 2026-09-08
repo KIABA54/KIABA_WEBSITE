@@ -131,3 +131,61 @@ CREATE TRIGGER update_users_modtime
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
+
+-- 9. Table de rate limiting best-effort (voir src/lib/rateLimit.ts)
+-- Fenêtre fixe : une ligne par (clé, début de fenêtre arrondi).
+CREATE TABLE IF NOT EXISTS rate_limits (
+    key VARCHAR(255) NOT NULL,
+    window_start TIMESTAMPTZ NOT NULL,
+    count INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (key, window_start)
+);
+
+-- =========================================================================
+-- ROW LEVEL SECURITY (RLS)
+-- =========================================================================
+-- La clé "anon" publique (NEXT_PUBLIC_SUPABASE_ANON_KEY) est exposée au
+-- navigateur. Toutes les ÉCRITURES applicatives passent exclusivement par
+-- les routes API serveur (src/app/api/**), qui utilisent la clé
+-- service_role via createAdminClient() — cette clé contourne RLS par
+-- nature. RLS ne sert donc ici qu'à verrouiller ce que la clé anon peut lire
+-- si elle est un jour utilisée directement depuis le navigateur (SSR public,
+-- composants clients). Principe appliqué : tout est fermé par défaut, seules
+-- les lectures publiques strictement nécessaires sont autorisées.
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE otp_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE blacklisted_emails ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ad_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- users, otp_codes, transactions, blacklisted_emails, rate_limits :
+-- aucune policy créée pour anon/authenticated => RLS activée + zéro policy
+-- signifie qu'aucune ligne n'est jamais visible via ces rôles. C'est
+-- volontaire : ces tables contiennent des données sensibles (hash de mot
+-- de passe, codes OTP, montants de transaction, emails bannis, compteurs
+-- de rate limiting) qui ne doivent être lues/écrites que par le backend
+-- via service_role.
+
+-- ads : lecture publique uniquement des annonces publiées (ONLINE).
+-- Les statuts PENDING_PAYMENT, OFFLINE et DELETED ne doivent jamais être
+-- exposés via la clé anon (ex: annonce en attente de paiement, supprimée,
+-- ou expirée mais pas encore purgée).
+CREATE POLICY "ads_public_read_online" ON ads
+    FOR SELECT
+    USING (status = 'ONLINE');
+
+-- ad_photos : lecture publique uniquement des photos dont l'annonce
+-- parente est ONLINE. La table ad_photos n'a pas son propre statut, d'où
+-- la sous-requête EXISTS qui réplique la même règle que ci-dessus.
+CREATE POLICY "ad_photos_public_read_online" ON ad_photos
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM ads
+            WHERE ads.id = ad_photos.ad_id
+            AND ads.status = 'ONLINE'
+        )
+    );

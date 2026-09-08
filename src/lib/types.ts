@@ -51,6 +51,11 @@ export interface Ad {
   updated_at: string;
 }
 
+export interface Session {
+  userId: string;
+  email: string;
+}
+
 export interface Transaction {
   id: string;
   user_id: string;
