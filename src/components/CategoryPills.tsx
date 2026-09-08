@@ -21,11 +21,12 @@ export default function CategoryPills({
 }: CategoryPillsProps) {
   return (
     <div className="w-full space-y-2">
-      <h2 className="text-sm sm:text-base font-extrabold text-[#1E3A8A]">
-        Catégories
-      </h2>
+      <h2 className="text-sm sm:text-base font-extrabold text-brand-blue-900">Catégories</h2>
 
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div
+        role="list"
+        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap pb-2 scrollbar-none scroll-fade-x md:scroll-fade-none"
+      >
         {CATEGORY_ITEMS.map((cat) => {
           const isSelected = selectedCategory === cat.id;
           const Icon = cat.icon;
@@ -33,24 +34,24 @@ export default function CategoryPills({
           return (
             <button
               key={cat.id}
+              role="listitem"
+              aria-pressed={isSelected}
               onClick={() => onSelectCategory(cat.id)}
-              className="flex flex-col items-center gap-1.5 flex-1 min-w-[62px] group focus:outline-none"
+              className="flex flex-col items-center gap-1.5 flex-1 md:flex-none min-w-[64px] md:w-20 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
             >
               <div className="relative">
-                {/* Badge compteur rouge foncé superposé en haut du cercle */}
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black bg-[#991B1B] text-white shadow-sm whitespace-nowrap z-10">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-3xs font-black bg-red-800 text-white shadow-sm whitespace-nowrap z-10">
                   {cat.count}
                 </span>
 
-                {/* Cercle avec bordure douce */}
                 <div
                   className={`w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-200 mt-1 ${
                     isSelected
-                      ? "bg-rose-50 border-brand-pink-500 text-brand-pink-600 shadow-md scale-105"
-                      : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm"
+                      ? "bg-rose-50 border-brand-pink-500 text-brand-pink-600 shadow-card scale-105"
+                      : "bg-white border-slate-200 text-slate-600 group-hover:border-slate-300 shadow-sm"
                   }`}
                 >
-                  <Icon className="w-6 h-6 stroke-[1.8]" />
+                  <Icon className="w-6 h-6 stroke-[1.8]" aria-hidden="true" />
                 </div>
               </div>
 
