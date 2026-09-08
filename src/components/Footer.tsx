@@ -1,61 +1,87 @@
 import Link from "next/link";
-import { AlertTriangle, MapPin, ChevronRight } from "lucide-react";
+import { AlertTriangle, MapPin, ChevronRight, Heart } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="mt-8 pt-4 pb-10 space-y-4">
-      {/* BLOC : OÙ ÊTES-VOUS ? (REPRODUCTION STRICTE CAPTURE 1) */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm hover:border-slate-300 transition-colors">
-        <div className="flex items-start gap-3">
-          <MapPin className="w-5 h-5 text-[#DC2626] flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-black text-[#1E3A8A]">
-              Où êtes-vous ?
-            </p>
-            <p className="text-xs text-slate-500 leading-snug">
-              Choisissez votre ville pour voir en premier les annonces près de chez vous.
-            </p>
+    <footer className="mt-8 border-t border-slate-200 bg-white">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* OÙ ÊTES-VOUS ? */}
+          <Link
+            href="/"
+            className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-card hover:border-slate-300 hover:shadow-card-hover transition-all min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
+          >
+            <div className="flex items-start gap-3">
+              <MapPin className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-black text-brand-blue-900">Où êtes-vous ?</p>
+                <p className="text-xs text-slate-500 leading-snug">
+                  Choisissez votre ville pour voir en premier les annonces près de chez vous.
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" aria-hidden="true" />
+          </Link>
+
+          {/* AVERTISSEMENT DE SÉCURITÉ */}
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs leading-relaxed flex items-start gap-3">
+            <AlertTriangle
+              className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5 fill-amber-200"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="font-extrabold uppercase tracking-wide text-amber-900 mb-1">
+                Avertissement de sécurité
+              </p>
+              <p className="text-amber-800">
+                Le contenu de ce site est généré par les utilisateurs. L&apos;utilisateur est le
+                seul responsable des produits et services proposés. En accédant au site, vous
+                acceptez nos{" "}
+                <Link
+                  href="/conditions"
+                  className="underline font-bold text-amber-900 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500"
+                >
+                  conditions générales
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         </div>
-        <ChevronRight className="w-5 h-5 text-slate-400 flex-shrink-0" />
-      </div>
 
-      {/* AVERTISSEMENT DE SÉCURITÉ (REPRODUCTION STRICTE JAUNE/ORANGE CAPTURE 1) */}
-      <div className="bg-[#FEFCE8] border border-[#FEF08A] rounded-2xl p-4 text-xs leading-relaxed flex items-start gap-3">
-        <AlertTriangle className="w-6 h-6 text-[#CA8A04] flex-shrink-0 mt-0.5 fill-[#FEF08A]" />
-        <div>
-          <p className="font-extrabold uppercase tracking-wide text-[#854D0E] mb-1">
-            AVERTISSEMENT DE SÉCURITÉ
-          </p>
-          <p className="text-[#713F12]">
-            Le contenu de ce site est généré par les utilisateurs. L'utilisateur est le seul responsable des produits et services proposés. En accédant au site, vous acceptez nos{" "}
-            <Link href="/conditions" className="underline font-bold text-[#854D0E]">
-              conditions générales
+        {/* LIENS ET COPYRIGHT */}
+        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <Link href="/" className="flex items-center gap-2 text-slate-500">
+            <Heart className="w-4 h-4 text-brand-pink-500" aria-hidden="true" />
+            <span className="text-xs font-bold">Kiaba Rencontre</span>
+          </Link>
+
+          <nav
+            aria-label="Liens du pied de page"
+            className="flex items-center gap-3 sm:gap-5 text-xs font-semibold text-slate-600"
+          >
+            <Link
+              href="/contact"
+              className="hover:text-brand-pink-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 py-1"
+            >
+              Contactez-nous
             </Link>
-            .
-          </p>
-        </div>
-      </div>
+            <Link
+              href="/conditions"
+              className="hover:text-brand-pink-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 py-1"
+            >
+              Conditions
+            </Link>
+            <Link
+              href="/a-propos"
+              className="hover:text-brand-pink-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 py-1"
+            >
+              À propos
+            </Link>
+          </nav>
 
-      {/* LIENS ET COPYRIGHT (REPRODUCTION STRICTE CAPTURES 1 ET 4) */}
-      <div className="text-center space-y-2 pt-2">
-        <div className="flex items-center justify-center gap-3 text-xs font-semibold text-slate-600">
-          <Link href="/contact" className="hover:text-brand-pink-600">
-            Contactez-nous
-          </Link>
-          <span>•</span>
-          <Link href="/conditions" className="hover:text-brand-pink-600">
-            Conditions
-          </Link>
-          <span>•</span>
-          <Link href="/a-propos" className="hover:text-brand-pink-600">
-            À propos
-          </Link>
+          <p className="text-xs text-slate-400">© 2026 Kiaba Rencontre — Tous droits réservés</p>
         </div>
-
-        <p className="text-xs text-slate-500">
-          © 2026 Kiaba Rencontre — Tous droits réservés
-        </p>
       </div>
     </footer>
   );
