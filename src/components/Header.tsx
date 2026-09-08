@@ -118,7 +118,7 @@ function Logo() {
       className="flex items-center flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- logo hébergé sur Supabase Storage, hors domaines optimisés par défaut */}
-      <img src={SITE_LOGO_URL} alt="Kiaba Rencontre" className="h-9 sm:h-10 w-auto" />
+      <img src={SITE_LOGO_URL} alt="Kiaba Rencontre" className="h-11 sm:h-12 w-auto" />
     </Link>
   );
 }

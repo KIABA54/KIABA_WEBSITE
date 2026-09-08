@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import CategoryPills from "@/components/CategoryPills";
 import FeaturedCarousel from "@/components/FeaturedCarousel";
@@ -73,6 +73,15 @@ export default function HomePage() {
     setVipOnly(false);
     setSearchQuery("");
   };
+
+  // Arrivée depuis une autre page avec "#villes-populaires" dans l'URL (ex:
+  // lien "Où êtes-vous ?" du pied de page) : le scroll natif du navigateur
+  // sur un hash ne se redéclenche pas après l'hydratation de l'app.
+  useEffect(() => {
+    if (window.location.hash === "#villes-populaires") {
+      document.getElementById("villes-populaires")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">

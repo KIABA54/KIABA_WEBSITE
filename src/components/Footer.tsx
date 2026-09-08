@@ -1,7 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { AlertTriangle, Heart, MapPin, ChevronRight } from "lucide-react";
 
 export default function Footer() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Sur l'accueil, on scrolle directement (le hash seul ne re-déclenche pas
+  // le scroll natif du navigateur une fois l'app hydratée). Depuis une
+  // autre page, on navigue vers l'accueil avec le hash, qui gère le scroll
+  // au premier rendu.
+  const handleWhereAreYouClick = (e: React.MouseEvent) => {
+    if (pathname === "/") {
+      e.preventDefault();
+      document.getElementById("villes-populaires")?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push("/#villes-populaires");
+    }
+  };
+
   return (
     <footer className="mt-8 border-t border-slate-200 bg-white">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4 sm:space-y-6">
@@ -10,6 +29,7 @@ export default function Footer() {
               (id="villes-populaires"), pas un lien mort. */}
           <Link
             href="/#villes-populaires"
+            onClick={handleWhereAreYouClick}
             className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-card hover:border-slate-300 hover:shadow-card-hover transition-all min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
           >
             <div className="flex items-start gap-3">
