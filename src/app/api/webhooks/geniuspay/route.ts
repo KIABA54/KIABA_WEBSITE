@@ -8,24 +8,25 @@ export async function POST(req: Request) {
     const timestamp = req.headers.get("x-webhook-timestamp") || "";
     const rawPayload = await req.text();
 
-    const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET || "whsec_mock";
-
-    // Vérification de sécurité de la signature cryptographique GeniusPay
-    if (process.env.NODE_ENV === "production") {
-      const verification = verifyGeniusPayWebhook(
-        rawPayload,
-        signature,
-        timestamp,
-        webhookSecret
+    const webhookSecret = process.env.GENIUSPAY_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error("[Webhook GeniusPay] GENIUSPAY_WEBHOOK_SECRET absent : impossible de vérifier la signature.");
+      return NextResponse.json(
+        { error: "Webhook non configuré : GENIUSPAY_WEBHOOK_SECRET manquant." },
+        { status: 500 }
       );
+    }
 
-      if (!verification.isValid) {
-        console.warn("[Webhook GeniusPay] Signature invalide:", verification.reason);
-        return NextResponse.json(
-          { error: "Signature invalide", reason: verification.reason },
-          { status: 401 }
-        );
-      }
+    // La signature est TOUJOURS vérifiée, quel que soit l'environnement :
+    // un webhook non authentifié permettrait à n'importe qui d'activer une
+    // annonce ou un boost sans payer.
+    const verification = verifyGeniusPayWebhook(rawPayload, signature, timestamp, webhookSecret);
+    if (!verification.isValid) {
+      console.warn("[Webhook GeniusPay] Signature invalide:", verification.reason);
+      return NextResponse.json(
+        { error: "Signature invalide", reason: verification.reason },
+        { status: 401 }
+      );
     }
 
     const payload = JSON.parse(rawPayload);
@@ -34,7 +35,6 @@ export async function POST(req: Request) {
 
     console.log(`[Webhook GeniusPay] Événement reçu: ${event}, Ref: ${data?.reference}`);
 
-    // TRAITEMENT DU PAIEMENT RÉUSSI
     if (event === "payment.success" || data?.status === "completed") {
       const reference = data.reference;
       const metadata = data.metadata || {};
@@ -43,7 +43,24 @@ export async function POST(req: Request) {
 
       const supabase = createAdminClient();
 
-      // 1. Mettre à jour la transaction
+      const { data: transaction } = await supabase
+        .from("transactions")
+        .select("id, status")
+        .eq("geniuspay_reference", reference)
+        .maybeSingle();
+
+      if (!transaction) {
+        console.warn(`[Webhook GeniusPay] Aucune transaction trouvée pour la référence ${reference}.`);
+        return NextResponse.json({ received: true, warning: "transaction inconnue" });
+      }
+
+      // Idempotence : un webhook peut être renvoyé plusieurs fois par
+      // l'agrégateur (retry). On ne réactive jamais une transaction déjà
+      // complétée pour éviter les doubles activations/boosts.
+      if (transaction.status === "COMPLETED") {
+        return NextResponse.json({ received: true, idempotent: true });
+      }
+
       await supabase
         .from("transactions")
         .update({
@@ -51,9 +68,8 @@ export async function POST(req: Request) {
           completed_at: new Date().toISOString(),
           payment_method: data.payment_method || "mobile_money",
         })
-        .eq("geniuspay_reference", reference);
+        .eq("id", transaction.id);
 
-      // 2. Activer l'annonce selon l'action
       if (actionType === "NEW_AD" && adId) {
         await supabase
           .from("ads")
@@ -73,13 +89,17 @@ export async function POST(req: Request) {
           })
           .eq("id", adId);
       }
+      // EDIT : la transaction est marquée COMPLETED, aucune mise à jour de
+      // contenu n'est déclenchée ici — la mise à jour des champs de
+      // l'annonce éditée est hors périmètre de ce webhook de paiement.
 
       console.log(`[GeniusPay] Action ${actionType} activée avec succès pour annonce ${adId}`);
     }
 
     return NextResponse.json({ received: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Webhook GeniusPay] Erreur:", error);
-    return NextResponse.json({ error: error?.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Erreur serveur";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
