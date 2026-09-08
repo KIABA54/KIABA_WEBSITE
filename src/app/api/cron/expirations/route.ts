@@ -10,6 +10,15 @@ interface AlertWindow {
   delayLabel: string;
 }
 
+// Le plan Vercel Hobby limite les Cron Jobs à une exécution par jour (voir
+// vercel.json) : la fenêtre H-1 ("1 heure avant expiration") ne peut donc se
+// déclencher que pour les annonces qui expirent dans l'heure suivant le
+// passage quotidien du cron — la plupart des annonces n'auront jamais
+// d'alerte H-1 en pratique. J-2/J-1 restent utiles (préviennent bien avant,
+// juste avec ~24h de marge d'imprécision au lieu de pile 48h/24h). Pour un
+// vrai H-1 fiable, il faudrait soit passer au plan Pro (cron plus fréquent),
+// soit appeler cette route depuis un service externe (GitHub Actions,
+// cron-job.org...) avec l'en-tête "Authorization: Bearer <CRON_SECRET>".
 const ALERT_WINDOWS: AlertWindow[] = [
   { hours: 48, flagColumn: "alert_2d_sent", delayLabel: "48 heures" },
   { hours: 24, flagColumn: "alert_1d_sent", delayLabel: "24 heures" },
