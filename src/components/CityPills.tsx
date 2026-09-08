@@ -2,20 +2,28 @@
 
 import { MapPin, ArrowRight } from "lucide-react";
 
-interface CityPillsProps {
-  selectedCity: string;
-  onSelectCity: (city: string) => void;
+export interface CityCount {
+  name: string;
+  count: number;
 }
 
-const CITIES = [
-  { name: "Abidjan", count: 528 },
-  { name: "Bouaké", count: 32 },
-  { name: "Korhogo", count: 23 },
-  { name: "Yamoussoukro", label: "Yamousso...", count: 6 },
-  { name: "San-Pédro", count: 5 },
-];
+interface CityPillsProps {
+  /** Villes déjà triées par nombre d'annonces (ordre décroissant) ; seules les 5 premières sont affichées. */
+  cities: CityCount[];
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
+  onViewAllCities?: () => void;
+}
 
-export default function CityPills({ selectedCity, onSelectCity }: CityPillsProps) {
+const MAX_VISIBLE_CITIES = 5;
+
+export default function CityPills({ cities, selectedCity, onSelectCity, onViewAllCities }: CityPillsProps) {
+  const topCities = cities.slice(0, MAX_VISIBLE_CITIES);
+
+  if (topCities.length === 0) {
+    return null;
+  }
+
   return (
     <div className="w-full space-y-2">
       <div className="flex items-center justify-between">
@@ -23,7 +31,7 @@ export default function CityPills({ selectedCity, onSelectCity }: CityPillsProps
           Villes populaires
         </h2>
         <button
-          onClick={() => onSelectCity("")}
+          onClick={() => (onViewAllCities ? onViewAllCities() : onSelectCity(""))}
           className="text-xs font-bold text-red-600 hover:underline flex items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2 min-h-11 px-1"
         >
           <span>Voir toutes les villes</span>
@@ -33,9 +41,9 @@ export default function CityPills({ selectedCity, onSelectCity }: CityPillsProps
 
       <div
         role="list"
-        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap pb-2 scrollbar-none scroll-fade-x md:scroll-fade-none"
+        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center pb-2 scrollbar-none scroll-fade-x md:scroll-fade-none"
       >
-        {CITIES.map((item) => {
+        {topCities.map((item) => {
           const isSelected = selectedCity.toLowerCase() === item.name.toLowerCase();
 
           return (
@@ -44,7 +52,7 @@ export default function CityPills({ selectedCity, onSelectCity }: CityPillsProps
               role="listitem"
               aria-pressed={isSelected}
               onClick={() => onSelectCity(isSelected ? "" : item.name)}
-              className="flex flex-col items-center gap-1.5 flex-1 md:flex-none min-w-[62px] md:w-20 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
+              className="flex flex-col items-center gap-1.5 flex-1 md:flex-none min-w-[62px] md:w-24 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
             >
               <div className="relative">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-3xs font-black bg-red-800 text-white shadow-sm whitespace-nowrap z-10">
@@ -62,8 +70,8 @@ export default function CityPills({ selectedCity, onSelectCity }: CityPillsProps
                 </div>
               </div>
 
-              <span className="text-2xs font-bold text-slate-800 truncate max-w-[70px]">
-                {item.label || item.name}
+              <span className="text-2xs font-bold text-slate-800 truncate max-w-[80px]">
+                {item.name}
               </span>
             </button>
           );

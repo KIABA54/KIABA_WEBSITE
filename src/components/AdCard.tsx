@@ -7,8 +7,6 @@ import {
   MapPin,
   ShieldCheck,
   Clock,
-  MessageCircle,
-  Phone,
   SearchX,
   AlertTriangle,
   RotateCcw,
@@ -31,7 +29,6 @@ export default function AdCard({ ad }: AdCardProps) {
     return `il y a : ${diffD} jours`;
   };
 
-  const cleanPhone = ad.phone_number.replace(/\s+/g, "");
   const formula = FORMULAS[ad.formula];
   const showRibbon = ad.formula === "VIP" || ad.formula === "PRO_PLUS" || ad.formula === "PRO";
 
@@ -123,27 +120,6 @@ export default function AdCard({ ad }: AdCardProps) {
           </div>
         </div>
       </div>
-
-      {/* CONTACT RAPIDE */}
-      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-rose-200/60">
-        <a
-          href={`https://wa.me/${cleanPhone}?text=Bonjour%20vu%20sur%20KIABA%20RENCONTRE`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="min-h-11 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
-        >
-          <MessageCircle className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
-          <span>WhatsApp</span>
-        </a>
-
-        <a
-          href={`tel:${cleanPhone}`}
-          className="min-h-11 px-3 rounded-xl bg-brand-blue-700 hover:bg-brand-blue-900 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-600 focus-visible:ring-offset-2"
-        >
-          <Phone className="w-3.5 h-3.5 fill-current" aria-hidden="true" />
-          <span>Appeler</span>
-        </a>
-      </div>
     </div>
   );
 }
@@ -170,10 +146,6 @@ export function AdCardSkeleton() {
           </div>
           <div className="skeleton h-2.5 rounded-md w-1/3" />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
-        <div className="skeleton h-11 rounded-xl" />
-        <div className="skeleton h-11 rounded-xl" />
       </div>
     </div>
   );

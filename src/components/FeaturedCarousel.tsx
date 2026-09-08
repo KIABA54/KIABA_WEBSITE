@@ -13,9 +13,11 @@ const CARD_STEP = 168;
 
 export default function FeaturedCarousel({ ads }: FeaturedCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const featuredAds = ads.filter(
-    (a) => a.formula === "VIP" || a.formula === "PRO_PLUS" || a.is_boosted
-  );
+  // Le carrousel "Annonces Étoiles" est un avantage propre à la formule VIP
+  // (voir README : "mise en avant permanente + carrousel VIP") — il ne doit
+  // pas être dilué par les annonces Pro(+) ou simplement boostées, sinon
+  // l'avantage VIP perd sa valeur.
+  const featuredAds = ads.filter((a) => a.formula === "VIP");
 
   const scrollByStep = (direction: 1 | -1) => {
     scrollRef.current?.scrollBy({ left: direction * CARD_STEP, behavior: "smooth" });

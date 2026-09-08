@@ -21,6 +21,28 @@ export default function HomePage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Nombre d'annonces par catégorie, calculé depuis les annonces réellement
+  // en ligne (jamais de compteurs figés dans le composant d'affichage).
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: ads.length };
+    for (const ad of ads) {
+      counts[ad.category] = (counts[ad.category] || 0) + 1;
+    }
+    return counts;
+  }, [ads]);
+
+  // Villes triées par nombre d'annonces décroissant ; CityPills n'en affiche
+  // que les 5 premières ("les 5 villes avec le plus d'annonces").
+  const cityCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ad of ads) {
+      counts.set(ad.city, (counts.get(ad.city) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [ads]);
+
   // Filtrage ultra-rapide
   const filteredAds = useMemo(() => {
     return ads.filter((ad) => {
@@ -53,7 +75,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-6xl mx-auto space-y-4">
       {/* 1. TITRE & RECHERCHE (CONFORME CAPTURE 3) */}
       <SearchBar
         searchQuery={searchQuery}
@@ -66,6 +88,7 @@ export default function HomePage() {
       <CategoryPills
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
+        counts={categoryCounts}
       />
 
       {/* 3. VOS ANNONCES ÉTOILES (CONFORME CAPTURE 3) */}
@@ -73,12 +96,13 @@ export default function HomePage() {
 
       {/* 4. VILLES POPULAIRES (CONFORME CAPTURE 2 & 3) */}
       <CityPills
+        cities={cityCounts}
         selectedCity={selectedCity}
         onSelectCity={setSelectedCity}
       />
 
       {/* 5. LISTE DES CARTES D'ANNONCES (CONFORME CAPTURES 1, 2 ET 4) */}
-      <div className="space-y-3 pt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pt-2 justify-items-center sm:justify-items-stretch">
         {filteredAds.map((ad) => (
           <AdCard key={ad.id} ad={ad} />
         ))}
