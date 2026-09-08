@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
       const { data: transaction } = await supabase
         .from("transactions")
-        .select("id, status, amount_fcfa, user_id")
+        .select("id, status, amount_fcfa, user_id, metadata")
         .eq("geniuspay_reference", reference)
         .maybeSingle();
 
@@ -102,10 +102,31 @@ export async function POST(req: Request) {
                   : null,
             })
             .eq("id", adId);
+        } else if (actionType === "EDIT") {
+          // Les champs modifiés attendent dans transactions.metadata.pending_changes
+          // (posés par PATCH /api/ads/[id] au moment du paiement) — jamais transmis
+          // à GeniusPay lui-même, seulement stockés côté serveur.
+          const pendingChanges = (transaction.metadata as { pending_changes?: Record<string, unknown> })
+            ?.pending_changes;
+          if (pendingChanges) {
+            const { photos, ...adFields } = pendingChanges as {
+              photos?: string[];
+              [key: string]: unknown;
+            };
+            await supabase
+              .from("ads")
+              .update({ ...adFields, updated_at: new Date().toISOString() })
+              .eq("id", adId);
+
+            if (Array.isArray(photos)) {
+              await supabase.from("ad_photos").delete().eq("ad_id", adId);
+              await supabase.from("ad_photos").insert(
+                photos.map((url, index) => ({ ad_id: adId, photo_url: url, display_order: index + 1 }))
+              );
+            }
+            adTitle = (adFields.title as string) || adTitle;
+          }
         }
-        // EDIT : la transaction est marquée COMPLETED, aucune mise à jour de
-        // contenu n'est déclenchée ici — la mise à jour des champs de
-        // l'annonce éditée est hors périmètre de ce webhook de paiement.
       }
 
       const { data: userRow } = await supabase

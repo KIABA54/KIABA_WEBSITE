@@ -3,21 +3,24 @@ import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
-import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE } from "@/lib/constants";
+import { FORMULAS, BOOST_PERCENTAGE } from "@/lib/constants";
 import { sendReceiptEmail } from "@/lib/email";
 import type { FormulaId } from "@/lib/types";
 
-// Cette route gère uniquement les actions sur une annonce EXISTANTE.
-// La création + premier paiement d'une nouvelle annonce passe par
-// POST /api/ads, qui gère aussi le cas de la 1ère annonce gratuite.
-type ExistingAdActionType = "BOOST" | "RENEWAL" | "EDIT";
-const ALLOWED_ACTIONS: ExistingAdActionType[] = ["BOOST", "RENEWAL", "EDIT"];
+// Cette route gère uniquement BOOST et RENEWAL sur une annonce EXISTANTE.
+// - La création + premier paiement d'une nouvelle annonce passe par
+//   POST /api/ads (gère aussi le cas de la 1ère annonce gratuite).
+// - La modification de contenu passe par PATCH /api/ads/[id], qui gère le
+//   paiement ET l'application des changements en un seul endroit (voir ce
+//   fichier pour le détail — contrairement à BOOST/RENEWAL, EDIT porte des
+//   données propres à chaque annonce qui doivent être stockées jusqu'à
+//   confirmation du paiement).
+type ExistingAdActionType = "BOOST" | "RENEWAL";
+const ALLOWED_ACTIONS: ExistingAdActionType[] = ["BOOST", "RENEWAL"];
 
 function computeAmount(actionType: ExistingAdActionType, formula: FormulaId): number {
   const formulaConfig = FORMULAS[formula];
   switch (actionType) {
-    case "EDIT":
-      return EDIT_AD_PRICE;
     case "BOOST":
       return Math.round(BOOST_PERCENTAGE * formulaConfig.price);
     case "RENEWAL":
@@ -42,7 +45,7 @@ export async function POST(req: Request) {
 
     if (!ad_id || !action_type || !ALLOWED_ACTIONS.includes(action_type as ExistingAdActionType)) {
       return NextResponse.json(
-        { error: "action_type doit être BOOST, RENEWAL ou EDIT, avec un ad_id valide." },
+        { error: "action_type doit être BOOST ou RENEWAL, avec un ad_id valide." },
         { status: 400 }
       );
     }
@@ -69,9 +72,6 @@ export async function POST(req: Request) {
     }
     if (actionType === "RENEWAL" && ad.status !== "OFFLINE") {
       return NextResponse.json({ error: "Seule une annonce hors ligne peut être renouvelée." }, { status: 409 });
-    }
-    if (actionType === "EDIT" && ad.status !== "ONLINE") {
-      return NextResponse.json({ error: "Seule une annonce en ligne peut être modifiée." }, { status: 409 });
     }
 
     // Montant recalculé côté serveur exclusivement, jamais depuis le body client.
@@ -118,8 +118,6 @@ export async function POST(req: Request) {
           })
           .eq("id", ad.id);
       }
-      // EDIT : la transaction est marquée COMPLETED ; l'application du
-      // contenu modifié reste hors périmètre ici (voir webhook GeniusPay).
 
       await sendReceiptEmail({
         email: session.email,

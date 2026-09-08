@@ -52,11 +52,11 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;"
 <tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid ${COLORS.border};">
   <tr>
-    <td style="background-color:${COLORS.blueDeep};padding:22px 32px;text-align:center;">
-      <img src="${SITE_LOGO_URL}" alt="KIABA RENCONTRE" height="36" style="display:inline-block;height:36px;width:auto;border:0;">
+    <td style="background-color:#ffffff;padding:26px 32px 22px;text-align:left;">
+      <img src="${SITE_LOGO_URL}" alt="KIABA RENCONTRE" height="56" style="display:inline-block;height:56px;width:auto;border:0;">
     </td>
   </tr>
-  <tr><td style="height:4px;line-height:4px;font-size:0;background-color:${COLORS.pink};">&nbsp;</td></tr>
+  <tr><td style="height:3px;line-height:3px;font-size:0;background-color:${COLORS.pink};">&nbsp;</td></tr>
   <tr>
     <td style="padding:36px 32px 12px;">
       <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${COLORS.pinkDeep};">${escapeHtml(eyebrow)}</p>
@@ -88,14 +88,12 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;"
 </html>`;
 }
 
-/** Encart code OTP à 6 chiffres — bords stricts, gros chiffres espacés. */
+/** Code OTP à 6 chiffres — texte seul, gras et agrandi, sans cadre ni fond. */
 function otpCodeBlock(code: string): string {
   const spaced = code.split("").join(" ");
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0;width:100%;">
-    <tr><td style="background-color:${COLORS.bgSoft};border:1px solid ${COLORS.border};padding:20px;text-align:center;">
-      <span style="font-family:'Courier New',monospace;font-size:30px;font-weight:800;letter-spacing:4px;color:${COLORS.blueDeep};">${escapeHtml(spaced)}</span>
-    </td></tr>
-  </table>`;
+  return `<p style="margin:22px 0;padding:0;">
+    <span style="font-family:'Courier New',monospace;font-size:34px;font-weight:800;letter-spacing:6px;color:${COLORS.blueDeep};">${escapeHtml(spaced)}</span>
+  </p>`;
 }
 
 function ctaButton(label: string, url: string): string {
@@ -183,7 +181,7 @@ export function receiptTemplate(params: {
     eyebrow: "Confirmation",
     heading: `${params.typeLabel} confirmée`,
     bodyHtml: `
-      <p style="margin:0 0 20px;">${params.adTitle ? `Concernant votre annonce « <strong>${escapeHtml(params.adTitle)}</strong> ».` : "Voici votre reçu."}</p>
+      <p style="margin:0 0 20px;"><strong>${escapeHtml(params.typeLabel)}</strong> ${params.adTitle ? `concernant votre annonce « <strong>${escapeHtml(params.adTitle)}</strong> ».` : "— voici votre reçu."}</p>
 
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${COLORS.border};margin:0 0 20px;">
         <tr>
@@ -201,6 +199,24 @@ export function receiptTemplate(params: {
       </table>
 
       ${params.adId ? ctaButton("Voir mon annonce", `${params.appUrl}/annonces/${params.adId}`) : ""}
+    `,
+  });
+}
+
+export function expirationAlertTemplate(params: {
+  adTitle: string;
+  delayLabel: string; // ex: "48 heures", "24 heures", "1 heure"
+  appUrl: string;
+  adId: string;
+}): string {
+  return renderLayout({
+    preheader: `Votre annonce « ${params.adTitle} » expire dans ${params.delayLabel}.`,
+    eyebrow: "Expiration prochaine",
+    heading: `Votre annonce expire dans ${params.delayLabel}`,
+    bodyHtml: `
+      <p style="margin:0 0 16px;">Votre annonce « <strong>${escapeHtml(params.adTitle)}</strong> » passera automatiquement <strong>hors ligne</strong> dans ${params.delayLabel} si elle n'est pas renouvelée.</p>
+      <p style="margin:0 0 4px;font-size:12.5px;color:${COLORS.inkSoft};">Renouvelez-la dès maintenant pour qu'elle reste visible sans interruption.</p>
+      ${ctaButton("Renouveler mon annonce", `${params.appUrl}/profil`)}
     `,
   });
 }

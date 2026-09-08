@@ -1,47 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, CITIES, CLIENT_TYPES, CONTACT_CHANNELS, FORMULAS } from "@/lib/constants";
+import Link from "next/link";
+import { CATEGORIES, CITIES, CLIENT_TYPES, CONTACT_CHANNELS, EDIT_AD_PRICE } from "@/lib/constants";
 import { validateAdContent } from "@/lib/moderation";
 import { compressImageFile } from "@/lib/imageCompress";
+import type { Ad, AcceptedClient, ContactChannel } from "@/lib/types";
 import {
   Camera,
   Upload,
   X,
-  Sparkles,
+  Pencil,
   AlertCircle,
   CheckCircle2,
   Lock,
   ArrowRight,
+  ArrowLeft,
   Loader2,
 } from "lucide-react";
 
 const MAX_PHOTOS = 5;
 
-export default function NewAdPage() {
+export default function EditAdPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("+225 ");
-  const [contactChannel, setContactChannel] = useState<"WHATSAPP" | "CALL" | "BOTH">("BOTH");
-  const [acceptedClient, setAcceptedClient] = useState<"HOMME" | "FEMME" | "TRANSGENRE" | "TOUS">("HOMME");
-
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [contactChannel, setContactChannel] = useState<ContactChannel>("BOTH");
+  const [acceptedClient, setAcceptedClient] = useState<AcceptedClient>("HOMME");
   const [selectedCategory, setSelectedCategory] = useState<string>("escorte-girl");
-  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>(["Vaginal"]);
-
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-
-  const [selectedFormula, setSelectedFormula] = useState<"STANDARD" | "PRO" | "PRO_PLUS" | "VIP">("STANDARD");
 
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const activeCategoryObj = CATEGORIES.find((c) => c.id === selectedCategory) || CATEGORIES[0];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [adRes, meRes] = await Promise.all([
+          fetch(`/api/ads/${resolvedParams.id}`),
+          fetch("/api/auth/me"),
+        ]);
+
+        if (meRes.status === 401) {
+          router.push(`/connexion?next=/annonces/${resolvedParams.id}/modifier`);
+          return;
+        }
+        if (adRes.status === 404) {
+          if (!cancelled) setLoadError("Cette annonce n'existe plus ou n'est plus en ligne.");
+          return;
+        }
+
+        const adData = await adRes.json();
+        const meData = await meRes.json();
+        if (!adRes.ok || !meRes.ok) {
+          if (!cancelled) setLoadError("Erreur lors du chargement de l'annonce.");
+          return;
+        }
+
+        const ad: Ad = adData.ad;
+        if (ad.user_id !== meData.user.id) {
+          if (!cancelled) setLoadError("Cette annonce ne vous appartient pas.");
+          return;
+        }
+
+        if (cancelled) return;
+        setTitle(ad.title);
+        setDescription(ad.description);
+        setCity(ad.city);
+        setAddress(ad.address);
+        setPhoneNumber(ad.phone_number);
+        setContactChannel(ad.contact_channels);
+        setAcceptedClient(ad.accepted_clients);
+        setSelectedCategory(ad.category);
+        setSelectedSubcategories(ad.subcategories?.length ? ad.subcategories : []);
+        setPhotos(ad.photos);
+      } catch {
+        if (!cancelled) setLoadError("Erreur réseau lors du chargement de l'annonce.");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedParams.id, router]);
 
   const handleToggleSubcategory = (sub: string) => {
     if (selectedSubcategories.includes(sub)) {
@@ -60,25 +119,20 @@ export default function NewAdPage() {
     }
   };
 
-  // Upload réel d'une ou plusieurs photos vers Supabase Storage. Le champ
-  // accepte une sélection multiple (attribut `multiple` sur l'input) — on
-  // uploade chaque fichier retenu l'un après l'autre.
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     const remainingSlots = MAX_PHOTOS - photos.length;
     if (remainingSlots <= 0) {
-      setErrorMsg(`Vous ne pouvez ajouter que ${MAX_PHOTOS} photos maximum par annonce.`);
+      setErrorMsg(`Vous ne pouvez avoir que ${MAX_PHOTOS} photos maximum par annonce.`);
       e.target.value = "";
       return;
     }
 
     const filesToUpload = files.slice(0, remainingSlots);
     if (files.length > remainingSlots) {
-      setErrorMsg(
-        `Seules les ${remainingSlots} premières photos ont été ajoutées (maximum ${MAX_PHOTOS} par annonce).`
-      );
+      setErrorMsg(`Seules les ${remainingSlots} premières photos ont été ajoutées (maximum ${MAX_PHOTOS}).`);
     } else {
       setErrorMsg("");
     }
@@ -122,7 +176,7 @@ export default function NewAdPage() {
       return;
     }
     if (!city.trim()) {
-      setErrorMsg("Veuillez renseigner votre ville.");
+      setErrorMsg("Veuillez sélectionner votre ville.");
       return;
     }
     if (!address.trim()) {
@@ -138,7 +192,6 @@ export default function NewAdPage() {
       return;
     }
 
-    // Feedback immédiat côté client — le vrai filtre fait foi côté serveur.
     const moderation = validateAdContent(title, description);
     if (!moderation.isValid) {
       setErrorMsg(moderation.reason || "Contenu rejeté par le filtre de sécurité.");
@@ -147,8 +200,8 @@ export default function NewAdPage() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/ads", {
-        method: "POST",
+      const res = await fetch(`/api/ads/${resolvedParams.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
@@ -160,7 +213,6 @@ export default function NewAdPage() {
           accepted_clients: acceptedClient,
           category: selectedCategory,
           subcategories: selectedSubcategories,
-          formula: selectedFormula,
           photos,
         }),
       });
@@ -168,16 +220,16 @@ export default function NewAdPage() {
       const data = await res.json();
 
       if (res.status === 401) {
-        router.push("/connexion?next=/annonces/nouvelle");
+        router.push(`/connexion?next=/annonces/${resolvedParams.id}/modifier`);
         return;
       }
       if (!res.ok) {
-        setErrorMsg(data.error || "Une erreur est survenue lors de la publication.");
+        setErrorMsg(data.error || "Une erreur est survenue lors de la modification.");
         return;
       }
 
       if (data.free) {
-        router.push("/paiement/succes?ref=FREE-WELCOME&type=free&amount=0");
+        router.push(`/annonces/${resolvedParams.id}`);
       } else if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
@@ -190,19 +242,40 @@ export default function NewAdPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 flex flex-col items-center gap-2 text-slate-500">
+        <Loader2 className="w-6 h-6 animate-spin" />
+        <p className="text-xs">Chargement de l&apos;annonce...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-md mx-auto py-16 text-center space-y-4">
+        <p className="text-sm font-bold text-slate-800">{loadError}</p>
+        <Link
+          href="/profil"
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-brand-pink-500 hover:bg-brand-pink-600 text-white font-bold text-xs shadow-md transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Retour à mon profil</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
-      {/* HEADER DU FORMULAIRE */}
       <div className="text-center">
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-pink-50 text-brand-pink-600 border border-brand-pink-200 mb-2">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Nouvelle Publication</span>
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-blue-50 text-brand-blue-800 border border-brand-blue-200 mb-2">
+          <Pencil className="w-3.5 h-3.5" />
+          <span>Modification d&apos;annonce</span>
         </span>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900">
-          Déposez votre petite annonce
-        </h1>
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900">Modifiez votre annonce</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Votre profil et vos coordonnées seront directement visibles par des milliers de visiteurs.
+          La formule et sa durée restante ne changent pas — seul le contenu est mis à jour.
         </p>
       </div>
 
@@ -214,7 +287,6 @@ export default function NewAdPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* SECTION 1 : PHOTOS (1 À 5 PHOTOS) */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
@@ -270,33 +342,25 @@ export default function NewAdPage() {
               </label>
             )}
           </div>
-          <p className="text-[11px] text-slate-400">
-            Format JPEG, PNG ou WEBP. 8 Mo max par photo.
-          </p>
+          <p className="text-[11px] text-slate-400">Format JPEG, PNG ou WEBP. 8 Mo max par photo.</p>
         </div>
 
-        {/* SECTION 2 : INFORMATIONS PRINCIPALES */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Détails de l'annonce
-          </h2>
+          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Détails de l&apos;annonce</h2>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-              Titre de l'annonce <span className="text-rose-500">*</span>
+              Titre de l&apos;annonce <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Belle fille disponible sur Cocody pour moments intimes"
               maxLength={100}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20"
               required
             />
-            <span className="text-[10px] text-slate-400 mt-1 block">
-              {title.length} / 100 caractères (min. 10)
-            </span>
+            <span className="text-[10px] text-slate-400 mt-1 block">{title.length} / 100 caractères (min. 10)</span>
           </div>
 
           <div>
@@ -306,7 +370,6 @@ export default function NewAdPage() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez vos services, vos conditions, vos horaires, si vous recevez ou vous vous déplacez..."
               rows={4}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20 leading-relaxed"
               required
@@ -343,7 +406,6 @@ export default function NewAdPage() {
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Ex: Cocody Angré 8e tranche"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20"
                 required
               />
@@ -358,7 +420,6 @@ export default function NewAdPage() {
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="+225 07..."
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20 font-mono"
               required
             />
@@ -372,18 +433,14 @@ export default function NewAdPage() {
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setContactChannel(ch.id as any)}
+                    onClick={() => setContactChannel(ch.id as ContactChannel)}
                     className={`py-2 px-2 rounded-xl border text-xs font-bold text-center transition-all ${
                       contactChannel === ch.id
                         ? "bg-brand-blue-800 text-white border-brand-blue-800"
                         : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    {ch.id === "WHATSAPP"
-                      ? "WhatsApp"
-                      : ch.id === "CALL"
-                      ? "Appel seul"
-                      : "Les Deux"}
+                    {ch.id === "WHATSAPP" ? "WhatsApp" : ch.id === "CALL" ? "Appel seul" : "Les Deux"}
                   </button>
                 ))}
               </div>
@@ -399,7 +456,7 @@ export default function NewAdPage() {
                 <button
                   key={cl.id}
                   type="button"
-                  onClick={() => setAcceptedClient(cl.id as any)}
+                  onClick={() => setAcceptedClient(cl.id as AcceptedClient)}
                   className={`py-2 px-2 rounded-xl border text-xs font-bold text-center transition-all ${
                     acceptedClient === cl.id
                       ? "bg-brand-pink-500 text-white border-brand-pink-500 shadow-sm"
@@ -413,11 +470,8 @@ export default function NewAdPage() {
           </div>
         </div>
 
-        {/* SECTION 3 : CATÉGORIE & SOUS-CATÉGORIES */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Catégorie & Prestations
-          </h2>
+          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Catégorie & Prestations</h2>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -468,71 +522,10 @@ export default function NewAdPage() {
           </div>
         </div>
 
-        {/* SECTION 4 : CHOIX DE LA FORMULE DE PUBLICATION */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Choisissez votre formule de visibilité
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.values(FORMULAS).map((f) => {
-              const isSelected = selectedFormula === f.id;
-
-              return (
-                <div
-                  key={f.id}
-                  onClick={() => setSelectedFormula(f.id)}
-                  className={`cursor-pointer p-4 rounded-2xl border-2 transition-all relative ${
-                    isSelected
-                      ? f.id === "VIP"
-                        ? "border-amber-500 bg-amber-50/30 shadow-md ring-2 ring-amber-500/20"
-                        : "border-brand-pink-500 bg-brand-pink-50/30 shadow-md ring-2 ring-brand-pink-500/20"
-                      : "border-slate-200 hover:border-slate-300 bg-white"
-                  }`}
-                >
-                  {f.isPopular && (
-                    <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-brand-pink-500 text-white shadow-sm">
-                      Le plus populaire
-                    </span>
-                  )}
-                  {f.id === "VIP" && (
-                    <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-md text-[9px] font-black uppercase bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-sm">
-                      ⭐ Visibilité Maximale
-                    </span>
-                  )}
-
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-extrabold text-sm text-slate-900">{f.name}</h3>
-                    <span className="text-xs font-bold text-slate-500">
-                      {f.durationDays} jours
-                    </span>
-                  </div>
-
-                  <div className="my-2">
-                    <span className="text-base font-black text-brand-pink-600">
-                      {f.price.toLocaleString()} FCFA
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 leading-snug">
-                    {f.description}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[11px] text-slate-400">
-            Si votre 1ère annonce Standard gratuite est disponible, elle sera appliquée automatiquement.
-          </p>
-        </div>
-
-        {/* BOUTON DE SOUMISSION / PAIEMENT */}
         <div className="p-4 bg-slate-900 rounded-2xl text-white space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span>Formule sélectionnée :</span>
-            <span className="text-xl font-black text-brand-pink-400">
-              {FORMULAS[selectedFormula].price.toLocaleString()} FCFA
-            </span>
+            <span>Coût de la modification :</span>
+            <span className="text-xl font-black text-brand-pink-400">{EDIT_AD_PRICE.toLocaleString()} FCFA</span>
           </div>
 
           <button
@@ -545,7 +538,7 @@ export default function NewAdPage() {
             ) : (
               <>
                 <Lock className="w-4 h-4" />
-                <span>Payer et publier (Wave, Orange, MTN, Carte)</span>
+                <span>Enregistrer les modifications</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
@@ -553,7 +546,7 @@ export default function NewAdPage() {
 
           <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1">
             <Lock className="w-3 h-3 text-emerald-400" />
-            <span>Paiement sécurisé et crypté. Publication automatique dès confirmation (ou gratuite si vous y êtes éligible).</span>
+            <span>Paiement sécurisé et crypté (ou gratuit tant que le lancement du site est en cours).</span>
           </p>
         </div>
       </form>

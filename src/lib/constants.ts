@@ -7,6 +7,25 @@ export const SITE_TAGLINE = "Petites annonces pour adultes en toute discrétion"
 export const SITE_LOGO_URL =
   "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/logsite.png";
 
+// Âge minimum légal pour s'inscrire — site pour adultes uniquement. Vérifié
+// UNIQUEMENT côté client jusqu'ici (formulaire d'inscription) : sans ce
+// contrôle serveur, un appel direct à /api/auth/register avec une date de
+// naissance de mineur passait sans être bloqué.
+export const MIN_AGE = 18;
+
+export function isAdultBirthDate(birthDate: string): boolean {
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return false;
+
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age >= MIN_AGE;
+}
+
 // Formules d'annonces
 export interface FormulaConfig {
   id: "STANDARD" | "PRO" | "PRO_PLUS" | "VIP";
@@ -115,6 +134,58 @@ export const CATEGORIES = [
     ],
   },
 ] as const;
+
+// Villes couvertes par le site — liste fermée : la création d'annonce et les
+// filtres ne proposent que ces villes (fini le champ libre). `id` est la
+// valeur stockée en base (déjà en minuscules, ex: "abidjan"), `label` est le
+// nom affiché avec orthographe correcte. Toujours triée par ordre
+// alphabétique (localeCompare "fr") avant export, quel que soit l'ordre
+// d'ajout ci-dessous — ne pas la retrier manuellement.
+const CITIES_UNSORTED = [
+  { id: "abidjan", label: "Abidjan" },
+  { id: "bingerville", label: "Bingerville" },
+  { id: "san-pedro", label: "San-Pédro" },
+  { id: "abengourou", label: "Abengourou" },
+  { id: "bouake", label: "Bouaké" },
+  { id: "korhogo", label: "Korhogo" },
+  { id: "daloa", label: "Daloa" },
+  { id: "yamoussoukro", label: "Yamoussoukro" },
+  { id: "tengrela", label: "Tengréla" },
+  { id: "mankono", label: "Mankono" },
+  { id: "tiassale", label: "Tiassalé" },
+  { id: "bondoukou", label: "Bondoukou" },
+  { id: "grand-bassam", label: "Grand-Bassam" },
+  { id: "tabou", label: "Tabou" },
+  { id: "dabou", label: "Dabou" },
+  { id: "meagui", label: "Méagui" },
+  { id: "gagnoa", label: "Gagnoa" },
+  { id: "soubre", label: "Soubré" },
+  { id: "issia", label: "Issia" },
+  { id: "yabayo", label: "Yabayo" },
+  { id: "vavoua", label: "Vavoua" },
+  { id: "agboville", label: "Agboville" },
+  { id: "guiglo", label: "Guiglo" },
+  { id: "man", label: "Man" },
+  { id: "boundiali", label: "Boundiali" },
+  { id: "ferkessedougou", label: "Ferkessédougou" },
+  { id: "odienne", label: "Odienné" },
+  { id: "seguela", label: "Séguéla" },
+  { id: "sassandra", label: "Sassandra" },
+  { id: "anyama", label: "Anyama" },
+  { id: "jacqueville", label: "Jacqueville" },
+  { id: "divo", label: "Divo" },
+  { id: "oume", label: "Oumé" },
+  { id: "sinfra", label: "Sinfra" },
+  { id: "bonon", label: "Bonon" },
+] as const;
+
+export const CITIES = [...CITIES_UNSORTED].sort((a, b) =>
+  a.label.localeCompare(b.label, "fr", { sensitivity: "base" })
+);
+
+export function getCityLabel(cityId: string): string {
+  return CITIES.find((c) => c.id === cityId)?.label || cityId;
+}
 
 // Types de clientèle acceptée
 export const CLIENT_TYPES = [

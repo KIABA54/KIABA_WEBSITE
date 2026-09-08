@@ -1,5 +1,11 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import { otpTemplate, welcomeTemplate, receiptTemplate, simpleNoticeTemplate } from "./emailTemplates";
+import {
+  otpTemplate,
+  welcomeTemplate,
+  receiptTemplate,
+  simpleNoticeTemplate,
+  expirationAlertTemplate,
+} from "./emailTemplates";
 
 // Envoi d'email transactionnel via le compte SMTP professionnel du domaine
 // (ci-kiaba.com). Sans configuration (dev local sans les identifiants SMTP),
@@ -66,7 +72,7 @@ export async function sendOtpEmail(email: string, otpCode: string): Promise<void
     html: otpTemplate({
       eyebrow: "Vérification",
       heading: "Confirmez votre inscription",
-      introHtml: "Voici votre code de vérification pour finaliser la création de votre compte KIABA RENCONTRE :",
+      introHtml: "Voici votre <strong>code de vérification</strong> pour finaliser la création de votre compte KIABA RENCONTRE :",
       code: otpCode,
     }),
     devFallbackLabel: `Email OTP KIABA RENCONTRE - code ${otpCode}`,
@@ -81,7 +87,7 @@ export async function sendAccountDeletionOtpEmail(email: string, otpCode: string
       eyebrow: "Zone sensible",
       heading: "Confirmer la suppression de votre compte",
       introHtml:
-        "Vous avez demandé la suppression définitive de votre compte. Cette action est irréversible : toutes vos annonces seront supprimées et votre adresse email sera définitivement bannie du site.",
+        "Vous avez demandé la <strong>suppression définitive</strong> de votre compte. Cette action est <strong>irréversible</strong> : toutes vos annonces seront supprimées et votre adresse email sera définitivement bannie du site.",
       code: otpCode,
       footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre compte ne sera pas supprimé.",
     }),
@@ -97,8 +103,8 @@ export async function sendAccountDeletedEmail(email: string): Promise<void> {
       eyebrow: "Confirmation",
       heading: "Compte supprimé définitivement",
       bodyHtml: `
-        <p style="margin:0 0 12px;">Votre compte, votre profil et toutes vos annonces ont été définitivement supprimés de notre base de données.</p>
-        <p style="margin:0;">Cette adresse email ne pourra plus jamais être utilisée pour créer un nouveau compte sur KIABA RENCONTRE.</p>
+        <p style="margin:0 0 12px;">Votre compte, votre profil et toutes vos annonces ont été <strong>définitivement supprimés</strong> de notre base de données.</p>
+        <p style="margin:0;">Cette adresse email ne pourra <strong>plus jamais</strong> être utilisée pour créer un nouveau compte sur KIABA RENCONTRE.</p>
       `,
     }),
     devFallbackLabel: "Email confirmation suppression de compte KIABA RENCONTRE",
@@ -112,7 +118,7 @@ export async function sendPasswordChangeOtpEmail(email: string, otpCode: string)
     html: otpTemplate({
       eyebrow: "Sécurité",
       heading: "Changer votre mot de passe",
-      introHtml: "Voici votre code de confirmation pour changer le mot de passe de votre compte :",
+      introHtml: "Voici votre <strong>code de confirmation</strong> pour changer le mot de passe de votre compte :",
       code: otpCode,
       footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
     }),
@@ -127,7 +133,7 @@ export async function sendForgotPasswordOtpEmail(email: string, otpCode: string)
     html: otpTemplate({
       eyebrow: "Mot de passe oublié",
       heading: "Réinitialiser votre mot de passe",
-      introHtml: "Voici votre code de réinitialisation :",
+      introHtml: "Voici votre <strong>code de réinitialisation</strong> :",
       code: otpCode,
       footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre mot de passe reste inchangé.",
     }),
@@ -172,6 +178,20 @@ export async function sendReceiptEmail(params: {
       appUrl: appUrl(),
     }),
     devFallbackLabel: `Email reçu KIABA RENCONTRE - ${typeLabel} - réf ${params.reference}`,
+  });
+}
+
+export async function sendAdExpiringEmail(
+  email: string,
+  adTitle: string,
+  adId: string,
+  delayLabel: string
+): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: `Votre annonce expire dans ${delayLabel} — KIABA RENCONTRE`,
+    html: expirationAlertTemplate({ adTitle, delayLabel, adId, appUrl: appUrl() }),
+    devFallbackLabel: `Email alerte expiration (${delayLabel}) KIABA RENCONTRE - ${adTitle}`,
   });
 }
 

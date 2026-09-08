@@ -26,9 +26,10 @@ export function validateAdContent(title: string, description: string): { isValid
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
-    // Regex frontière de mots
+    // Frontière de mots stricte : sans elle, "viol" bloquerait "raviolis" ou
+    // "violoniste", et "man" (avant normalisation) bloquerait "maman".
     const regex = new RegExp(`\\b${normalizedKeyword}\\b`, "i");
-    if (regex.test(combinedText) || combinedText.includes(normalizedKeyword)) {
+    if (regex.test(combinedText)) {
       return {
         isValid: false,
         reason: `Votre annonce contient des termes interdits contraires aux conditions d'utilisation ("${keyword}"). Tout contenu raciste, haineux, violent ou illégal est strictement prohibé.`,

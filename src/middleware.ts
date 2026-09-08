@@ -7,9 +7,15 @@ import { jwtVerify } from "jose";
 const SESSION_COOKIE_NAME = "kiaba_session";
 
 const PROTECTED_PATHS = ["/profil", "/annonces/nouvelle"];
+// /annonces/<id>/modifier : id est dynamique, donc pas listable dans
+// PROTECTED_PATHS — on protège toute route se terminant par "/modifier".
+const PROTECTED_PATH_SUFFIXES = ["/modifier"];
 
 function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  return (
+    PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
+    PROTECTED_PATH_SUFFIXES.some((s) => pathname.endsWith(s))
+  );
 }
 
 export async function middleware(req: NextRequest) {
@@ -37,5 +43,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/profil/:path*", "/annonces/nouvelle/:path*"],
+  matcher: ["/profil/:path*", "/annonces/nouvelle/:path*", "/annonces/:id/modifier"],
 };

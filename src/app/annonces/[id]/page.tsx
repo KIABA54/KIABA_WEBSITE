@@ -16,6 +16,8 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Ad } from "@/lib/types";
+import AdCard, { AdCardSkeleton } from "@/components/AdCard";
+import { getCityLabel } from "@/lib/constants";
 
 export default function AdDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -25,6 +27,7 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
   const [notFoundError, setNotFoundError] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [similarAds, setSimilarAds] = useState<Ad[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +53,24 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
       cancelled = true;
     };
   }, [resolvedParams.id]);
+
+  useEffect(() => {
+    if (!ad) return;
+    let cancelled = false;
+    setSimilarAds(null);
+    fetch(`/api/ads?category=${encodeURIComponent(ad.category)}&exclude_id=${ad.id}&limit=4`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Erreur de chargement.");
+        if (!cancelled) setSimilarAds(data.ads);
+      })
+      .catch(() => {
+        if (!cancelled) setSimilarAds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ad?.id, ad?.category]);
 
   if (isLoading) {
     return (
@@ -202,25 +223,28 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           </h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-            {/* Utilisateur avec photo obligatoire */}
-            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+            {/* Utilisateur avec photo obligatoire — lien vers ses autres annonces */}
+            <Link
+              href={`/annonceur/${ad.user_id}`}
+              className="flex items-center gap-1.5 font-bold text-slate-800 hover:text-brand-pink-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500"
+            >
               <img
                 src={ad.user?.profile_photo_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                 alt=""
                 className="w-6 h-6 rounded-full object-cover border border-brand-pink-500"
               />
-              <span>{ad.user?.username || "Annonceur"}</span>
+              <span className="underline decoration-dotted underline-offset-2">{ad.user?.username || "Annonceur"}</span>
               <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                 {ad.user?.gender}
               </span>
-            </div>
+            </Link>
 
             <span>•</span>
 
             {/* Ville & Adresse */}
             <div className="flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-500" />
-              <span className="font-semibold text-slate-900">{ad.city}</span>
+              <span className="font-semibold text-slate-900">{getCityLabel(ad.city)}</span>
               {ad.address && <span className="text-slate-500">({ad.address})</span>}
             </div>
 
@@ -305,6 +329,20 @@ export default function AdDetailPage({ params }: { params: Promise<{ id: string 
           N'envoyez jamais d'argent à l'avance pour un transport ou une caution imaginaire. Privilégiez toujours la prudence, l'hygiène et le respect mutuel.
         </div>
       </div>
+
+      {/* ANNONCES SIMILAIRES */}
+      {(similarAds === null || similarAds.length > 0) && (
+        <div className="space-y-3 pt-2">
+          <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900">
+            Annonces similaires
+          </h2>
+          <div className="flex flex-col items-center gap-3">
+            {similarAds === null
+              ? Array.from({ length: 2 }).map((_, i) => <AdCardSkeleton key={i} />)
+              : similarAds.map((similarAd) => <AdCard key={similarAd.id} ad={similarAd} />)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSession } from "@/lib/auth";
+import { getSession, generateOtpCode } from "@/lib/auth";
 import { sendPasswordChangeOtpEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
@@ -18,7 +18,7 @@ export async function POST() {
     return NextResponse.json(rateLimitResponseBody(), { status: 429 });
   }
 
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpCode = generateOtpCode();
   const supabase = createAdminClient();
 
   const { error } = await supabase.from("otp_codes").insert({

@@ -93,7 +93,7 @@ export async function POST(req: Request) {
 
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("id, free_ad_eligible")
+      .select("id")
       .eq("id", session.userId)
       .single();
 
@@ -109,10 +109,26 @@ export async function POST(req: Request) {
     // GeniusPay reste intact et se réactive simplement en repassant cette
     // variable à "false", sans rien supprimer ni modifier côté paiement.
     const launchModeFree = process.env.LAUNCH_MODE_FREE_ADS === "true";
+
     // Le crédit "1ère annonce gratuite" personnel de l'utilisateur n'est
     // consommé que hors mode lancement, pour qu'il le garde intact une fois
-    // le mode lancement désactivé.
-    const isFreeEligible = !launchModeFree && user.free_ad_eligible === true && formulaConfig.id === "STANDARD";
+    // le mode lancement désactivé. L'UPDATE conditionné sur
+    // free_ad_eligible=true agit comme un verrou atomique : si deux requêtes
+    // concurrentes arrivent en même temps, une seule peut faire passer la
+    // valeur à false et récupérer une ligne — l'autre reçoit `null` et ne
+    // consomme rien. Sans ça, un simple SELECT-puis-UPDATE permettait de
+    // dépenser deux fois le même crédit gratuit (annonce en double gratuite).
+    let isFreeEligible = false;
+    if (!launchModeFree && formulaConfig.id === "STANDARD") {
+      const { data: consumed } = await supabase
+        .from("users")
+        .update({ free_ad_eligible: false })
+        .eq("id", session.userId)
+        .eq("free_ad_eligible", true)
+        .select("id")
+        .maybeSingle();
+      isFreeEligible = Boolean(consumed);
+    }
     const isFree = launchModeFree || isFreeEligible;
 
     const now = Date.now();
@@ -144,6 +160,12 @@ export async function POST(req: Request) {
       .single();
 
     if (adInsertError || !createdAd) {
+      // Le crédit gratuit vient d'être consommé atomiquement plus haut : si
+      // l'annonce elle-même n'a pas pu être créée, on le restitue pour ne
+      // pas faire perdre son crédit à l'utilisateur pour rien.
+      if (isFreeEligible) {
+        await supabase.from("users").update({ free_ad_eligible: true }).eq("id", session.userId);
+      }
       return NextResponse.json({ error: "Erreur lors de la création de l'annonce." }, { status: 500 });
     }
 
@@ -157,6 +179,9 @@ export async function POST(req: Request) {
     const { error: photosError } = await supabase.from("ad_photos").insert(photoRows);
     if (photosError) {
       await supabase.from("ads").delete().eq("id", adId);
+      if (isFreeEligible) {
+        await supabase.from("users").update({ free_ad_eligible: true }).eq("id", session.userId);
+      }
       return NextResponse.json({ error: "Erreur lors de l'enregistrement des photos." }, { status: 500 });
     }
 
@@ -171,9 +196,6 @@ export async function POST(req: Request) {
         completed_at: new Date().toISOString(),
         metadata: { free_first_ad: isFreeEligible, launch_promo: launchModeFree },
       });
-      if (isFreeEligible) {
-        await supabase.from("users").update({ free_ad_eligible: false }).eq("id", session.userId);
-      }
 
       await sendReceiptEmail({
         email: session.email,
@@ -256,6 +278,8 @@ export async function GET(req: Request) {
     const city = searchParams.get("city");
     const category = searchParams.get("category");
     const q = searchParams.get("q")?.trim();
+    const userId = searchParams.get("user_id");
+    const excludeId = searchParams.get("exclude_id");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20));
     const from = (page - 1) * limit;
@@ -272,6 +296,8 @@ export async function GET(req: Request) {
 
     if (city) query = query.eq("city", city);
     if (category) query = query.eq("category", category);
+    if (userId) query = query.eq("user_id", userId);
+    if (excludeId) query = query.neq("id", excludeId);
     if (q) {
       // Échappe les caractères réservés de la syntaxe .or() de Supabase
       // (virgule/parenthèses) pour ne pas casser le filtre avec une entrée

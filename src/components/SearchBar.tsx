@@ -1,12 +1,21 @@
 "use client";
 
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, ChevronDown } from "lucide-react";
+import { CITIES } from "@/lib/constants";
+
+export interface CityCount {
+  name: string;
+  count: number;
+}
 
 interface SearchBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenFilters: () => void;
   hasActiveFilters?: boolean;
+  cities: CityCount[];
+  selectedCity: string;
+  onSelectCity: (city: string) => void;
 }
 
 export default function SearchBar({
@@ -14,6 +23,9 @@ export default function SearchBar({
   setSearchQuery,
   onOpenFilters,
   hasActiveFilters = false,
+  cities,
+  selectedCity,
+  onSelectCity,
 }: SearchBarProps) {
   return (
     <div className="w-full space-y-3">
@@ -69,6 +81,39 @@ export default function SearchBar({
           <span>Filtres</span>
         </button>
       </form>
+
+      {/* SÉLECTEUR DE VILLE — remplace l'ancien bloc "Villes populaires" */}
+      <div className="max-w-2xl mx-auto">
+        <label htmlFor="city-select" className="sr-only">
+          Filtrer par ville
+        </label>
+        <div className="relative">
+          <MapPin
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+            aria-hidden="true"
+          />
+          <select
+            id="city-select"
+            value={selectedCity}
+            onChange={(e) => onSelectCity(e.target.value)}
+            className="w-full appearance-none pl-10 pr-9 py-2.5 min-h-11 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20 shadow-sm"
+          >
+            <option value="">Toutes les villes</option>
+            {CITIES.map((c) => {
+              const count = cities.find((s) => s.name === c.id)?.count || 0;
+              return (
+                <option key={c.id} value={c.id}>
+                  {c.label} ({count})
+                </option>
+              );
+            })}
+          </select>
+          <ChevronDown
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+            aria-hidden="true"
+          />
+        </div>
+      </div>
     </div>
   );
 }

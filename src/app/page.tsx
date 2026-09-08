@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchBar from "@/components/SearchBar";
 import CategoryPills from "@/components/CategoryPills";
-import CityPills from "@/components/CityPills";
 import AdCard, { AdCardSkeleton, AdListState } from "@/components/AdCard";
 import FilterDrawer from "@/components/FilterDrawer";
 import { Ad } from "@/lib/types";
@@ -138,18 +137,15 @@ export default function HomePage() {
         setSearchQuery={setSearchInput}
         onOpenFilters={() => setIsFilterOpen(true)}
         hasActiveFilters={hasActiveFilters}
+        cities={cityCounts}
+        selectedCity={selectedCity}
+        onSelectCity={setSelectedCity}
       />
 
       <CategoryPills
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         counts={categoryCounts}
-      />
-
-      <CityPills
-        cities={cityCounts}
-        selectedCity={selectedCity}
-        onSelectCity={setSelectedCity}
       />
 
       {/* LISTE DES ANNONCES */}

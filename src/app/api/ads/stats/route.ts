@@ -26,8 +26,7 @@ export async function GET() {
 
   const topCities = Array.from(cityCounts.entries())
     .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    .sort((a, b) => b.count - a.count);
 
   return NextResponse.json({
     success: true,

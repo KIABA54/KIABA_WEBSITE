@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { X, Check } from "lucide-react";
-import { CATEGORIES, CLIENT_TYPES } from "@/lib/constants";
+import { CATEGORIES, CITIES, CLIENT_TYPES } from "@/lib/constants";
 
 interface FilterDrawerProps {
   isOpen: boolean;
@@ -130,19 +130,24 @@ export default function FilterDrawer({
             </button>
           </div>
 
-          {/* VILLE (CHAMP LIBRE) */}
+          {/* VILLE */}
           <div>
             <label htmlFor="filter-city" className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
               Ville
             </label>
-            <input
+            <select
               id="filter-city"
-              type="text"
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              placeholder="Ex: Abidjan, Bouaké, Cocody..."
-              className="w-full px-3.5 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20"
-            />
+              className="w-full px-3.5 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-brand-pink-500 focus:ring-2 focus:ring-brand-pink-500/20 bg-white"
+            >
+              <option value="">Toutes les villes</option>
+              {CITIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* CATEGORIES */}

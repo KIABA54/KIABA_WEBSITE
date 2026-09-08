@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GENDERS } from "@/lib/constants";
 import PasswordField from "@/components/PasswordField";
+import { compressImageFile } from "@/lib/imageCompress";
 import {
   User,
   Mail,
@@ -70,8 +71,9 @@ export default function RegisterPage() {
     setErrorMsg("");
     setIsUploadingPhoto(true);
     try {
+      const compressed = await compressImageFile(file, 500, 0.85);
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", compressed);
       const res = await fetch("/api/uploads", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {

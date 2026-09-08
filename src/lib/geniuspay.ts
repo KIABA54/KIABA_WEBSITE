@@ -48,7 +48,11 @@ export async function initiateGeniusPayCheckout(
   if (!apiKey || !apiSecret) {
     // Mode simulation / fallback de développement
     console.warn("[GeniusPay] Clés API non configurées, génération d'une référence de test.");
-    const mockRef = `MTX-${Date.now().toString(36).toUpperCase()}`;
+    // `Date.now()` seul peut produire la même valeur pour deux appels dans la
+    // même milliseconde (rafale de requêtes) — la référence doit rester
+    // unique car transactions.geniuspay_reference porte une contrainte
+    // UNIQUE en base ; on ajoute donc un suffixe aléatoire.
+    const mockRef = `MTX-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
     return {
       success: true,
       data: {
@@ -112,9 +116,15 @@ export function verifyGeniusPayWebhook(
     return { isValid: false, reason: "Paramètres de signature manquants" };
   }
 
-  // Protection contre les attaques par rejeu (5 minutes max)
+  // Protection contre les attaques par rejeu (5 minutes max). Un timestamp
+  // non numérique donne `NaN`, et toute comparaison avec NaN vaut `false` —
+  // sans le contrôle explicite ci-dessous, cela désactivait silencieusement
+  // la protection anti-rejeu au lieu de la faire échouer.
   const currentTimestamp = Math.floor(Date.now() / 1000);
   const webhookTimestamp = parseInt(timestamp, 10);
+  if (!Number.isFinite(webhookTimestamp)) {
+    return { isValid: false, reason: "Horodatage invalide" };
+  }
   if (Math.abs(currentTimestamp - webhookTimestamp) > 300) {
     return { isValid: false, reason: "Horodatage expiré (replay attack detectée)" };
   }

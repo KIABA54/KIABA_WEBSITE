@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, generateOtpCode } from "@/lib/auth";
 import { sendOtpEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
+import { isAdultBirthDate } from "@/lib/constants";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -20,6 +21,15 @@ export async function POST(req: Request) {
     if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
       return NextResponse.json(
         { error: `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.` },
+        { status: 400 }
+      );
+    }
+
+    // Contrôle serveur obligatoire : le formulaire vérifie déjà l'âge côté
+    // client, mais ça ne protège rien contre un appel direct à cette route.
+    if (typeof birthDate !== "string" || !isAdultBirthDate(birthDate)) {
+      return NextResponse.json(
+        { error: "Vous devez avoir au moins 18 ans pour vous inscrire sur KIABA RENCONTRE." },
         { status: 400 }
       );
     }
@@ -76,7 +86,7 @@ export async function POST(req: Request) {
     const passwordHash = await hashPassword(password);
 
     // 4. Génération d'un code OTP à 6 chiffres
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpCode = generateOtpCode();
 
     // 5. Stockage du code OTP temporaire (validité 10 minutes)
     const { error: insertError } = await supabase.from("otp_codes").insert({

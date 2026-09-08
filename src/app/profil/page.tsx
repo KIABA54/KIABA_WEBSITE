@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE } from "@/lib/constants";
+import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE, getCityLabel } from "@/lib/constants";
 import { Ad, User as UserType } from "@/lib/types";
 import PasswordField from "@/components/PasswordField";
 import {
@@ -95,8 +95,11 @@ export default function ProfileDashboardPage() {
     router.refresh();
   };
 
-  // ACTION : Booster / Renouveler / Modifier — passe par le paiement réel
-  const initiatePaidAction = async (ad: Ad, actionType: "BOOST" | "RENEWAL" | "EDIT") => {
+  // ACTION : Booster / Renouveler — passe par le paiement réel. La
+  // modification de contenu (EDIT) est un flux séparé : elle a besoin d'un
+  // vrai formulaire, donc elle navigue vers /annonces/[id]/modifier plutôt
+  // que de payer ici sans rien à éditer ensuite.
+  const initiatePaidAction = async (ad: Ad, actionType: "BOOST" | "RENEWAL") => {
     setActionError("");
     setIsActionLoading(true);
     try {
@@ -129,7 +132,7 @@ export default function ProfileDashboardPage() {
   };
 
   const handleConfirmBoost = (ad: Ad) => initiatePaidAction(ad, "BOOST");
-  const handleEditAd = (ad: Ad) => initiatePaidAction(ad, "EDIT");
+  const handleEditAd = (ad: Ad) => router.push(`/annonces/${ad.id}/modifier`);
   const handleRenewAd = (ad: Ad) => initiatePaidAction(ad, "RENEWAL");
 
   // ACTION : Supprimer une annonce
@@ -404,7 +407,7 @@ export default function ProfileDashboardPage() {
                       {ad.title}
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      {ad.city} • Expire le : {new Date(ad.expires_at).toLocaleDateString()}
+                      {getCityLabel(ad.city)} • Expire le : {new Date(ad.expires_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

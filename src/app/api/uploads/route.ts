@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
+import { detectImageMimeType } from "@/lib/imageSignature";
 
 const BUCKET = "kiaba-uploads";
 const MAX_FILE_BYTES = 8 * 1024 * 1024; // 8 Mo
@@ -57,11 +58,22 @@ export async function POST(req: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const path = `${session ? session.userId : "anonymous"}/${randomUUID()}.${extension}`;
+
+    // Le Content-Type du client est déclaratif et falsifiable : on vérifie
+    // les octets réels du fichier avant de faire confiance à `file.type`.
+    const realType = detectImageMimeType(buffer);
+    if (!realType || !(realType in ALLOWED_TYPES)) {
+      return NextResponse.json(
+        { error: "Le contenu du fichier ne correspond pas à une image valide (JPEG, PNG ou WEBP)." },
+        { status: 400 }
+      );
+    }
+
+    const path = `${session ? session.userId : "anonymous"}/${randomUUID()}.${ALLOWED_TYPES[realType]}`;
 
     const supabase = createAdminClient();
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, buffer, {
-      contentType: file.type,
+      contentType: realType,
       upsert: false,
     });
 

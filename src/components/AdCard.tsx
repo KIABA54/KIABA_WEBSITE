@@ -12,7 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Ad } from "@/lib/types";
-import { FORMULAS } from "@/lib/constants";
+import { FORMULAS, getCityLabel } from "@/lib/constants";
 
 interface AdCardProps {
   ad: Ad;
@@ -89,7 +89,7 @@ export default function AdCard({ ad }: AdCardProps) {
 
             <div className="flex items-center gap-1 text-2xs text-slate-600 mb-1.5">
               <MapPin className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" aria-hidden="true" />
-              <span className="font-semibold text-slate-800 truncate">{ad.city}</span>
+              <span className="font-semibold text-slate-800 truncate">{getCityLabel(ad.city)}</span>
               {ad.address && (
                 <span className="text-amber-500 font-bold flex items-center gap-0.5 truncate">
                   ⚡ {ad.address}
@@ -104,8 +104,8 @@ export default function AdCard({ ad }: AdCardProps) {
               </span>
 
               {ad.is_boosted && (
-                <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-wider bg-red-600 text-white shadow-sm">
-                  Urgent
+                <span className="px-2 py-0.5 rounded-md text-3xs font-black uppercase tracking-wider bg-emerald-600 text-white shadow-sm">
+                  Boosté ⚡
                 </span>
               )}
             </div>

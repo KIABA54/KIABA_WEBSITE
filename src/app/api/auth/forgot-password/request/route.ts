@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendForgotPasswordOtpEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
+import { generateOtpCode } from "@/lib/auth";
 
 // Mot de passe oublié, utilisateur DÉCONNECTÉ (voir /api/auth/change-password
 // pour le changement depuis un profil déjà connecté). Réponse volontairement
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     return genericResponse;
   }
 
-  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpCode = generateOtpCode();
   const { error } = await supabase.from("otp_codes").insert({
     email: normalizedEmail,
     code: otpCode,

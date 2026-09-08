@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
@@ -18,6 +19,11 @@ function getSecretKey(): Uint8Array {
     );
   }
   return new TextEncoder().encode(secret);
+}
+
+/** Code OTP à 6 chiffres via un générateur cryptographiquement sûr (jamais Math.random, prévisible). */
+export function generateOtpCode(): string {
+  return randomInt(100000, 1000000).toString();
 }
 
 export async function hashPassword(password: string): Promise<string> {
