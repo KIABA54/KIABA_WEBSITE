@@ -1,38 +1,59 @@
-import { Resend } from "resend";
+import nodemailer, { type Transporter } from "nodemailer";
 
-// Envoi d'email transactionnel via Resend. En l'absence de clé API (dev
-// local sans compte Resend configuré), on se contente de logger le contenu
-// en console pour ne pas bloquer le développement — mais jamais en
-// production, où une clé manquante doit être une erreur explicite.
+// Envoi d'email transactionnel via le compte SMTP professionnel du domaine
+// (ci-kiaba.com). Sans configuration (dev local sans les identifiants SMTP),
+// on se contente de logger le contenu en console — mais jamais en
+// production, où une configuration manquante doit être une erreur explicite.
+let cachedTransporter: Transporter | null = null;
+
+function getTransporter(): Transporter {
+  if (cachedTransporter) return cachedTransporter;
+
+  const host = process.env.SMTP_HOST;
+  const port = Number(process.env.SMTP_PORT || 465);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+
+  if (!host || !user || !pass) {
+    throw new Error("Configuration SMTP incomplète (SMTP_HOST/SMTP_USER/SMTP_PASSWORD).");
+  }
+
+  cachedTransporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: process.env.SMTP_SECURE !== "false", // true par défaut (port 465, SSL/TLS direct)
+    auth: { user, pass },
+  });
+
+  return cachedTransporter;
+}
+
 export async function sendTransactionalEmail(params: {
   to: string;
   subject: string;
   html: string;
   devFallbackLabel: string;
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
+  const hasSmtpConfig = Boolean(
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD
+  );
 
-  if (!apiKey) {
+  if (!hasSmtpConfig) {
     if (process.env.NODE_ENV !== "production") {
       console.log(`[${params.devFallbackLabel}] (mode dev, pas d'envoi réel) destinataire=${params.to}`);
       return;
     }
-    throw new Error("RESEND_API_KEY n'est pas configuré : envoi d'email impossible en production.");
+    throw new Error("Configuration SMTP manquante : envoi d'email impossible en production.");
   }
 
-  const resend = new Resend(apiKey);
-  const from = process.env.EMAIL_FROM || "contact@kiabarencontre.com";
+  const from = process.env.EMAIL_FROM || "no_reply@ci-kiaba.com";
 
-  const { error } = await resend.emails.send({
-    from,
+  await getTransporter().sendMail({
+    from: `KIABA RENCONTRE <${from}>`,
     to: params.to,
     subject: params.subject,
     html: params.html,
   });
-
-  if (error) {
-    throw new Error(`Échec de l'envoi de l'email via Resend: ${error.message}`);
-  }
 }
 
 export async function sendOtpEmail(email: string, otpCode: string): Promise<void> {

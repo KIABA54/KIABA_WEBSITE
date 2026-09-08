@@ -3,10 +3,15 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AgeVerificationModal from "@/components/AgeVerificationModal";
+import { SITE_LOGO_URL } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "KIABA RENCONTRE — Petites Annonces Adultes",
   description: "Plateforme de petites annonces pour adultes rapide, discrète et sécurisée.",
+  icons: {
+    icon: SITE_LOGO_URL,
+    apple: SITE_LOGO_URL,
+  },
 };
 
 // Le pinch-to-zoom reste actif (accessibilité) : on ne fige que l'échelle initiale.

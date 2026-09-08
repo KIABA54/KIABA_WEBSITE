@@ -4,6 +4,8 @@
 
 export const SITE_NAME = "KIABA RENCONTRE";
 export const SITE_TAGLINE = "Petites annonces pour adultes en toute discrétion";
+export const SITE_LOGO_URL =
+  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/logsite.png";
 
 // Formules d'annonces
 export interface FormulaConfig {

@@ -95,11 +95,13 @@ export default function HomePage() {
       <FeaturedCarousel ads={ads} />
 
       {/* 4. VILLES POPULAIRES (CONFORME CAPTURE 2 & 3) */}
-      <CityPills
-        cities={cityCounts}
-        selectedCity={selectedCity}
-        onSelectCity={setSelectedCity}
-      />
+      <div id="villes-populaires" className="scroll-mt-20">
+        <CityPills
+          cities={cityCounts}
+          selectedCity={selectedCity}
+          onSelectCity={setSelectedCity}
+        />
+      </div>
 
       {/* 5. LISTE DES CARTES D'ANNONCES (CONFORME CAPTURES 1, 2 ET 4) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pt-2 justify-items-center sm:justify-items-stretch">

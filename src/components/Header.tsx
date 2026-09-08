@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Plus, LayoutGrid, LogIn, ArrowLeft, Heart } from "lucide-react";
+import { Plus, LayoutGrid, LogIn, ArrowLeft } from "lucide-react";
+import { SITE_LOGO_URL } from "@/lib/constants";
 
 interface HeaderProps {
   adCount?: number;
@@ -114,19 +115,10 @@ function Logo() {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2 group flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
+      className="flex items-center flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
     >
-      <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-pink-500 to-brand-blue-800 flex items-center justify-center text-white shadow-sm">
-        <Heart className="w-5 h-5 fill-white text-white" aria-hidden="true" />
-      </div>
-      <div className="flex flex-col">
-        <span className="text-lg font-black tracking-tight leading-none text-brand-blue-950">
-          Kiaba<span className="text-brand-pink-500">.</span>
-        </span>
-        <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-          Rencontres
-        </span>
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo hébergé sur Supabase Storage, hors domaines optimisés par défaut */}
+      <img src={SITE_LOGO_URL} alt="Kiaba Rencontre" className="h-9 sm:h-10 w-auto" />
     </Link>
   );
 }
