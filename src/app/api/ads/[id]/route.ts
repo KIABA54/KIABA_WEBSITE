@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { AD_SELECT_WITH_RELATIONS, mapAdRow, type AdRow } from "@/lib/supabase/ads";
+import { sendAdDeletedEmail } from "@/lib/email";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -39,7 +40,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const supabase = createAdminClient();
 
-    const { data: ad } = await supabase.from("ads").select("id, user_id, status").eq("id", id).maybeSingle();
+    const { data: ad } = await supabase.from("ads").select("id, user_id, status, title").eq("id", id).maybeSingle();
     if (!ad) {
       return NextResponse.json({ error: "Annonce introuvable." }, { status: 404 });
     }
@@ -58,6 +59,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (error) {
       return NextResponse.json({ error: "Erreur lors de la suppression de l'annonce." }, { status: 500 });
     }
+
+    await sendAdDeletedEmail(session.email, ad.title);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

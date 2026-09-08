@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE } from "@/lib/constants";
 import { Ad, User as UserType } from "@/lib/types";
+import PasswordField from "@/components/PasswordField";
 import {
   Mail,
   Edit3,
@@ -105,8 +106,18 @@ export default function ProfileDashboardPage() {
         body: JSON.stringify({ ad_id: ad.id, action_type: actionType }),
       });
       const data = await res.json();
-      if (!res.ok || !data.checkout_url) {
+      if (!res.ok) {
         setActionError(data.error || "Erreur lors de l'initiation du paiement.");
+        return;
+      }
+      if (data.free) {
+        // Mode lancement : l'action est déjà appliquée, pas de paiement à faire.
+        showNotification("Terminé — c'est gratuit pour le moment, aucun paiement requis.");
+        await loadData();
+        return;
+      }
+      if (!data.checkout_url) {
+        setActionError("Erreur lors de l'initiation du paiement.");
         return;
       }
       window.location.href = data.checkout_url;
@@ -528,12 +539,11 @@ export default function ProfileDashboardPage() {
                   placeholder="Code OTP (6 chiffres)"
                   className="w-full text-center tracking-widest text-sm font-mono py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-blue-500"
                 />
-                <input
-                  type="password"
+                <PasswordField
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={setNewPassword}
                   placeholder="Nouveau mot de passe (8 caractères min.)"
-                  className="w-full text-sm py-2.5 px-3 rounded-xl border border-slate-300 focus:outline-none focus:border-brand-blue-500"
+                  autoComplete="new-password"
                 />
                 <button
                   onClick={handleConfirmPasswordChange}

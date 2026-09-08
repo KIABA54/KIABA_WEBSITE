@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createSession } from "@/lib/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
@@ -90,6 +91,9 @@ export async function POST(req: Request) {
 
     // 4. Auto-login : on pose directement le cookie de session.
     await createSession(newUser.id, newUser.email);
+
+    // 5. Email de bienvenue avec la grille tarifaire complète.
+    await sendWelcomeEmail(newUser.email, metadata.username || "Utilisateur");
 
     return NextResponse.json({
       success: true,

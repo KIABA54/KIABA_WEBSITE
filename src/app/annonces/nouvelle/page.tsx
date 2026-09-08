@@ -59,30 +59,44 @@ export default function NewAdPage() {
     }
   };
 
-  // Upload réel d'une photo vers Supabase Storage
+  // Upload réel d'une ou plusieurs photos vers Supabase Storage. Le champ
+  // accepte une sélection multiple (attribut `multiple` sur l'input) — on
+  // uploade chaque fichier retenu l'un après l'autre.
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (photos.length >= MAX_PHOTOS) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const remainingSlots = MAX_PHOTOS - photos.length;
+    if (remainingSlots <= 0) {
       setErrorMsg(`Vous ne pouvez ajouter que ${MAX_PHOTOS} photos maximum par annonce.`);
       e.target.value = "";
       return;
     }
 
-    setErrorMsg("");
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (files.length > remainingSlots) {
+      setErrorMsg(
+        `Seules les ${remainingSlots} premières photos ont été ajoutées (maximum ${MAX_PHOTOS} par annonce).`
+      );
+    } else {
+      setErrorMsg("");
+    }
+
     setIsUploadingPhoto(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/uploads", { method: "POST", body: formData });
-      const data = await res.json();
-      if (!res.ok) {
-        setErrorMsg(data.error || "Erreur lors de l'envoi de la photo.");
-        return;
+      for (const file of filesToUpload) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/uploads", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          setErrorMsg(data.error || "Erreur lors de l'envoi d'une photo.");
+          continue;
+        }
+        setPhotos((prev) => [...prev, data.url]);
       }
-      setPhotos((prev) => [...prev, data.url]);
     } catch {
-      setErrorMsg("Erreur réseau lors de l'envoi de la photo.");
+      setErrorMsg("Erreur réseau lors de l'envoi des photos.");
     } finally {
       setIsUploadingPhoto(false);
       e.target.value = "";
@@ -246,6 +260,7 @@ export default function NewAdPage() {
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  multiple
                   className="sr-only"
                   onChange={handleAddPhoto}
                   disabled={isUploadingPhoto}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendTransactionalEmail } from "@/lib/email";
+import { sendForgotPasswordOtpEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Mot de passe oublié, utilisateur DÉCONNECTÉ (voir /api/auth/change-password
@@ -48,12 +48,7 @@ export async function POST(req: Request) {
   });
 
   if (!error) {
-    await sendTransactionalEmail({
-      to: normalizedEmail,
-      subject: "Réinitialisation de votre mot de passe — KIABA RENCONTRE",
-      html: `<p>Code de réinitialisation de votre mot de passe : <strong>${otpCode}</strong> (valable 10 minutes).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre mot de passe reste inchangé.</p>`,
-      devFallbackLabel: `Email mot de passe oublié KIABA RENCONTRE - code ${otpCode}`,
-    });
+    await sendForgotPasswordOtpEmail(normalizedEmail, otpCode);
   }
 
   return genericResponse;

@@ -5,6 +5,7 @@ import { validateAdContent } from "@/lib/moderation";
 import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
 import { FORMULAS } from "@/lib/constants";
 import { AD_SELECT_WITH_RELATIONS, mapAdRow, type AdRow } from "@/lib/supabase/ads";
+import { sendReceiptEmail } from "@/lib/email";
 import type { AcceptedClient, ContactChannel, FormulaId } from "@/lib/types";
 
 const CONTACT_CHANNELS: ContactChannel[] = ["WHATSAPP", "CALL", "BOTH"];
@@ -102,7 +103,17 @@ export async function POST(req: Request) {
 
     // Prix recalculé côté serveur exclusivement : jamais depuis le body client.
     const price = formulaConfig.price;
-    const isFreeEligible = user.free_ad_eligible === true && formulaConfig.id === "STANDARD";
+
+    // Mode lancement : toutes les annonces sont gratuites tant que le site
+    // vient d'ouvrir, quelle que soit la formule — le système de paiement
+    // GeniusPay reste intact et se réactive simplement en repassant cette
+    // variable à "false", sans rien supprimer ni modifier côté paiement.
+    const launchModeFree = process.env.LAUNCH_MODE_FREE_ADS === "true";
+    // Le crédit "1ère annonce gratuite" personnel de l'utilisateur n'est
+    // consommé que hors mode lancement, pour qu'il le garde intact une fois
+    // le mode lancement désactivé.
+    const isFreeEligible = !launchModeFree && user.free_ad_eligible === true && formulaConfig.id === "STANDARD";
+    const isFree = launchModeFree || isFreeEligible;
 
     const now = Date.now();
     const expiresAt = new Date(now + formulaConfig.durationDays * 24 * 60 * 60 * 1000).toISOString();
@@ -125,7 +136,7 @@ export async function POST(req: Request) {
         category,
         subcategories: Array.isArray(subcategories) ? subcategories : [],
         formula: formulaConfig.id,
-        status: isFreeEligible ? "ONLINE" : "PENDING_PAYMENT",
+        status: isFree ? "ONLINE" : "PENDING_PAYMENT",
         expires_at: expiresAt,
         highlight_expires_at: highlightExpiresAt,
       })
@@ -149,20 +160,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Erreur lors de l'enregistrement des photos." }, { status: 500 });
     }
 
-    if (isFreeEligible) {
-      await Promise.all([
-        supabase.from("users").update({ free_ad_eligible: false }).eq("id", session.userId),
-        supabase.from("transactions").insert({
-          user_id: session.userId,
-          ad_id: adId,
-          type: "NEW_AD",
-          amount_fcfa: 0,
-          status: "COMPLETED",
-          customer_phone: phone_number,
-          completed_at: new Date().toISOString(),
-          metadata: { free_first_ad: true },
-        }),
-      ]);
+    if (isFree) {
+      await supabase.from("transactions").insert({
+        user_id: session.userId,
+        ad_id: adId,
+        type: "NEW_AD",
+        amount_fcfa: 0,
+        status: "COMPLETED",
+        customer_phone: phone_number,
+        completed_at: new Date().toISOString(),
+        metadata: { free_first_ad: isFreeEligible, launch_promo: launchModeFree },
+      });
+      if (isFreeEligible) {
+        await supabase.from("users").update({ free_ad_eligible: false }).eq("id", session.userId);
+      }
+
+      await sendReceiptEmail({
+        email: session.email,
+        type: "NEW_AD",
+        reference: `FREE-${adId.slice(0, 8).toUpperCase()}`,
+        amountFcfa: 0,
+        adTitle: title,
+        adId,
+      });
 
       return NextResponse.json({
         success: true,

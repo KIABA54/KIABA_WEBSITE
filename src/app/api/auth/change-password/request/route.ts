@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
-import { sendTransactionalEmail } from "@/lib/email";
+import { sendPasswordChangeOtpEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Envoie le code OTP requis pour changer de mot de passe depuis le profil
@@ -32,12 +32,7 @@ export async function POST() {
     return NextResponse.json({ error: "Erreur lors de la génération du code." }, { status: 500 });
   }
 
-  await sendTransactionalEmail({
-    to: session.email,
-    subject: "Code de changement de mot de passe — KIABA RENCONTRE",
-    html: `<p>Code de confirmation pour changer votre mot de passe : <strong>${otpCode}</strong> (valable 10 minutes).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>`,
-    devFallbackLabel: `Email changement mot de passe KIABA RENCONTRE - code ${otpCode}`,
-  });
+  await sendPasswordChangeOtpEmail(session.email, otpCode);
 
   return NextResponse.json({ success: true, message: "Code envoyé par email." });
 }

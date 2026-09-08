@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import { otpTemplate, welcomeTemplate, receiptTemplate, simpleNoticeTemplate } from "./emailTemplates";
 
 // Envoi d'email transactionnel via le compte SMTP professionnel du domaine
 // (ci-kiaba.com). Sans configuration (dev local sans les identifiants SMTP),
@@ -56,11 +57,133 @@ export async function sendTransactionalEmail(params: {
   });
 }
 
+const appUrl = () => process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
 export async function sendOtpEmail(email: string, otpCode: string): Promise<void> {
   await sendTransactionalEmail({
     to: email,
-    subject: "Votre code de vérification KIABA RENCONTRE",
-    html: `<p>Votre code de vérification est : <strong>${otpCode}</strong></p><p>Il expire dans 10 minutes. Ne le partagez avec personne.</p>`,
+    subject: "Votre code de vérification — KIABA RENCONTRE",
+    html: otpTemplate({
+      eyebrow: "Vérification",
+      heading: "Confirmez votre inscription",
+      introHtml: "Voici votre code de vérification pour finaliser la création de votre compte KIABA RENCONTRE :",
+      code: otpCode,
+    }),
     devFallbackLabel: `Email OTP KIABA RENCONTRE - code ${otpCode}`,
+  });
+}
+
+export async function sendAccountDeletionOtpEmail(email: string, otpCode: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Confirmation de suppression de compte — KIABA RENCONTRE",
+    html: otpTemplate({
+      eyebrow: "Zone sensible",
+      heading: "Confirmer la suppression de votre compte",
+      introHtml:
+        "Vous avez demandé la suppression définitive de votre compte. Cette action est irréversible : toutes vos annonces seront supprimées et votre adresse email sera définitivement bannie du site.",
+      code: otpCode,
+      footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre compte ne sera pas supprimé.",
+    }),
+    devFallbackLabel: `Email suppression de compte KIABA RENCONTRE - code ${otpCode}`,
+  });
+}
+
+export async function sendAccountDeletedEmail(email: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Votre compte KIABA RENCONTRE a été supprimé",
+    html: simpleNoticeTemplate({
+      eyebrow: "Confirmation",
+      heading: "Compte supprimé définitivement",
+      bodyHtml: `
+        <p style="margin:0 0 12px;">Votre compte, votre profil et toutes vos annonces ont été définitivement supprimés de notre base de données.</p>
+        <p style="margin:0;">Cette adresse email ne pourra plus jamais être utilisée pour créer un nouveau compte sur KIABA RENCONTRE.</p>
+      `,
+    }),
+    devFallbackLabel: "Email confirmation suppression de compte KIABA RENCONTRE",
+  });
+}
+
+export async function sendPasswordChangeOtpEmail(email: string, otpCode: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Code de changement de mot de passe — KIABA RENCONTRE",
+    html: otpTemplate({
+      eyebrow: "Sécurité",
+      heading: "Changer votre mot de passe",
+      introHtml: "Voici votre code de confirmation pour changer le mot de passe de votre compte :",
+      code: otpCode,
+      footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
+    }),
+    devFallbackLabel: `Email changement mot de passe KIABA RENCONTRE - code ${otpCode}`,
+  });
+}
+
+export async function sendForgotPasswordOtpEmail(email: string, otpCode: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Réinitialisation de votre mot de passe — KIABA RENCONTRE",
+    html: otpTemplate({
+      eyebrow: "Mot de passe oublié",
+      heading: "Réinitialiser votre mot de passe",
+      introHtml: "Voici votre code de réinitialisation :",
+      code: otpCode,
+      footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre mot de passe reste inchangé.",
+    }),
+    devFallbackLabel: `Email mot de passe oublié KIABA RENCONTRE - code ${otpCode}`,
+  });
+}
+
+export async function sendWelcomeEmail(email: string, username: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Bienvenue sur KIABA RENCONTRE 🎉",
+    html: welcomeTemplate({ username, appUrl: appUrl() }),
+    devFallbackLabel: `Email bienvenue KIABA RENCONTRE pour ${username}`,
+  });
+}
+
+const RECEIPT_TYPE_LABELS: Record<string, string> = {
+  NEW_AD: "Publication d'annonce",
+  BOOST: "Mise en avant (Boost)",
+  RENEWAL: "Renouvellement d'annonce",
+  EDIT: "Modification d'annonce",
+};
+
+export async function sendReceiptEmail(params: {
+  email: string;
+  type: "NEW_AD" | "BOOST" | "RENEWAL" | "EDIT";
+  reference: string;
+  amountFcfa: number;
+  adTitle?: string;
+  adId?: string;
+}): Promise<void> {
+  const typeLabel = RECEIPT_TYPE_LABELS[params.type] || "Transaction";
+  await sendTransactionalEmail({
+    to: params.email,
+    subject: `${typeLabel} confirmée — KIABA RENCONTRE`,
+    html: receiptTemplate({
+      typeLabel,
+      reference: params.reference,
+      amountFcfa: params.amountFcfa,
+      adTitle: params.adTitle,
+      adId: params.adId,
+      appUrl: appUrl(),
+    }),
+    devFallbackLabel: `Email reçu KIABA RENCONTRE - ${typeLabel} - réf ${params.reference}`,
+  });
+}
+
+export async function sendAdDeletedEmail(email: string, adTitle: string): Promise<void> {
+  await sendTransactionalEmail({
+    to: email,
+    subject: "Votre annonce a été supprimée — KIABA RENCONTRE",
+    html: simpleNoticeTemplate({
+      eyebrow: "Confirmation",
+      heading: "Annonce supprimée",
+      bodyHtml: `<p style="margin:0;">Votre annonce « <strong>${adTitle.replace(/</g, "&lt;")}</strong> » a été supprimée définitivement et n'est plus visible sur le site.</p>`,
+    }),
+    devFallbackLabel: `Email suppression annonce KIABA RENCONTRE - ${adTitle}`,
   });
 }

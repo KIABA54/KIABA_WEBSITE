@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
-import { sendTransactionalEmail } from "@/lib/email";
+import { sendAccountDeletionOtpEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Envoie le code OTP requis pour confirmer une suppression de compte.
@@ -31,12 +31,7 @@ export async function POST() {
     return NextResponse.json({ error: "Erreur lors de la génération du code de confirmation." }, { status: 500 });
   }
 
-  await sendTransactionalEmail({
-    to: session.email,
-    subject: "Confirmation de suppression de compte — KIABA RENCONTRE",
-    html: `<p>Vous avez demandé la suppression définitive de votre compte KIABA RENCONTRE.</p><p>Code de confirmation : <strong>${otpCode}</strong> (valable 10 minutes).</p><p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email — votre compte ne sera pas supprimé sans ce code.</p>`,
-    devFallbackLabel: `Email suppression de compte KIABA RENCONTRE - code ${otpCode}`,
-  });
+  await sendAccountDeletionOtpEmail(session.email, otpCode);
 
   return NextResponse.json({ success: true, message: "Code de confirmation envoyé par email." });
 }

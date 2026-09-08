@@ -6,9 +6,14 @@ import { useEffect, useState } from "react";
 import { Plus, LayoutGrid, LogIn, ArrowLeft, UserCircle2 } from "lucide-react";
 import { SITE_LOGO_URL } from "@/lib/constants";
 
-function useIsAuthenticated() {
+function useIsAuthenticated(pathname: string) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Le Header vit dans le layout racine et n'est jamais démonté entre deux
+  // pages (navigation client-side) : sans `pathname` en dépendance, cet
+  // effet ne tournerait qu'une seule fois au tout premier chargement et
+  // resterait bloqué sur l'état "déconnecté" même après une connexion
+  // réussie qui redirige ailleurs sur le site.
   useEffect(() => {
     let cancelled = false;
     fetch("/api/auth/me")
@@ -21,7 +26,7 @@ function useIsAuthenticated() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pathname]);
 
   return isAuthenticated;
 }
@@ -51,7 +56,7 @@ function useAdCount() {
 export default function Header() {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuthenticated(pathname);
   const adCount = useAdCount();
   const adCountLabel = adCount === null ? "Annonces" : `${adCount} annonce${adCount === 1 ? "" : "s"}`;
 
@@ -96,7 +101,7 @@ export default function Header() {
               className="flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-xl bg-brand-blue-800 hover:bg-brand-blue-900 active:scale-[0.98] text-white text-xs sm:text-sm font-bold shadow-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-600 focus-visible:ring-offset-2"
             >
               {isAuthenticated ? <UserCircle2 className="w-4 h-4" aria-hidden="true" /> : <LogIn className="w-4 h-4" aria-hidden="true" />}
-              <span>{isAuthenticated ? "Mon profil" : "Se connecter"}</span>
+              <span>{isAuthenticated ? "Mon compte" : "Se connecter"}</span>
             </Link>
           </div>
         </div>
@@ -137,7 +142,7 @@ export default function Header() {
               className="flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl border border-brand-blue-800 text-brand-blue-800 hover:bg-brand-blue-50 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue-600 focus-visible:ring-offset-2"
             >
               {isAuthenticated ? <UserCircle2 className="w-4 h-4" aria-hidden="true" /> : <LogIn className="w-4 h-4" aria-hidden="true" />}
-              <span>{isAuthenticated ? "Mon profil" : "Se connecter"}</span>
+              <span>{isAuthenticated ? "Mon compte" : "Se connecter"}</span>
             </Link>
             <Link
               href="/annonces/nouvelle"

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 import { FORMULAS, EDIT_AD_PRICE, BOOST_PERCENTAGE } from "@/lib/constants";
+import { sendReceiptEmail } from "@/lib/email";
 import type { FormulaId } from "@/lib/types";
 
 // Cette route gère uniquement les actions sur une annonce EXISTANTE.
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     const supabase = createAdminClient();
     const { data: ad, error: adError } = await supabase
       .from("ads")
-      .select("id, user_id, formula, status, phone_number")
+      .select("id, user_id, formula, status, phone_number, title")
       .eq("id", ad_id)
       .maybeSingle();
 
@@ -75,6 +76,62 @@ export async function POST(req: Request) {
 
     // Montant recalculé côté serveur exclusivement, jamais depuis le body client.
     const amount = computeAmount(actionType, ad.formula as FormulaId);
+
+    // Mode lancement : même dormance du paiement que pour les nouvelles
+    // annonces (voir POST /api/ads) — l'action est appliquée immédiatement,
+    // gratuitement, sans passer par GeniusPay.
+    const launchModeFree = process.env.LAUNCH_MODE_FREE_ADS === "true";
+    if (launchModeFree) {
+      const { data: transaction, error: transactionError } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: session.userId,
+          ad_id: ad.id,
+          type: actionType,
+          amount_fcfa: 0,
+          status: "COMPLETED",
+          customer_phone: ad.phone_number,
+          completed_at: new Date().toISOString(),
+          metadata: { launch_promo: true },
+        })
+        .select("id")
+        .single();
+
+      if (transactionError || !transaction) {
+        return NextResponse.json({ error: "Erreur lors de la création de la transaction." }, { status: 500 });
+      }
+
+      const formulaConfig = FORMULAS[ad.formula as FormulaId];
+      const now = Date.now();
+      if (actionType === "BOOST") {
+        await supabase.from("ads").update({ is_boosted: true, boosted_at: new Date().toISOString() }).eq("id", ad.id);
+      } else if (actionType === "RENEWAL") {
+        await supabase
+          .from("ads")
+          .update({
+            status: "ONLINE",
+            expires_at: new Date(now + formulaConfig.durationDays * 24 * 3600 * 1000).toISOString(),
+            highlight_expires_at:
+              formulaConfig.highlightDays > 0
+                ? new Date(now + formulaConfig.highlightDays * 24 * 3600 * 1000).toISOString()
+                : null,
+          })
+          .eq("id", ad.id);
+      }
+      // EDIT : la transaction est marquée COMPLETED ; l'application du
+      // contenu modifié reste hors périmètre ici (voir webhook GeniusPay).
+
+      await sendReceiptEmail({
+        email: session.email,
+        type: actionType,
+        reference: `FREE-${transaction.id.slice(0, 8).toUpperCase()}`,
+        amountFcfa: 0,
+        adTitle: ad.title,
+        adId: ad.id,
+      });
+
+      return NextResponse.json({ success: true, free: true });
+    }
 
     const { data: transaction, error: transactionError } = await supabase
       .from("transactions")

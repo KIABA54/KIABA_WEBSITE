@@ -20,10 +20,10 @@ export default function ContactPage() {
           <div>
             <p className="text-sm font-bold text-slate-900">Par email</p>
             <a
-              href="mailto:contact@ci-kiaba.com"
+              href="mailto:mail@ci-kiaba.com"
               className="text-sm text-brand-pink-600 hover:underline font-mono"
             >
-              contact@ci-kiaba.com
+              mail@ci-kiaba.com
             </a>
             <p className="text-xs text-slate-500 mt-1">
               Nous répondons généralement sous 24 à 48 heures ouvrées.

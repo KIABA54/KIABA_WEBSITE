@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, clearSession } from "@/lib/auth";
-import { sendTransactionalEmail } from "@/lib/email";
+import { sendAccountDeletedEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Purge définitive du compte : vérifie le code OTP envoyé par
@@ -60,12 +60,7 @@ export async function POST(req: Request) {
 
   await clearSession();
 
-  await sendTransactionalEmail({
-    to: email,
-    subject: "Votre compte KIABA RENCONTRE a été supprimé",
-    html: `<p>Votre compte, votre profil et toutes vos annonces ont été définitivement supprimés.</p><p>Cette adresse email ne pourra plus être utilisée pour créer un nouveau compte sur KIABA RENCONTRE.</p>`,
-    devFallbackLabel: "Email confirmation suppression de compte KIABA RENCONTRE",
-  });
+  await sendAccountDeletedEmail(email);
 
   return NextResponse.json({ success: true });
 }

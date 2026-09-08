@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { verifyGeniusPayWebhook } from "@/lib/geniuspay";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendReceiptEmail } from "@/lib/email";
+import { FORMULAS } from "@/lib/constants";
+import type { FormulaId } from "@/lib/types";
 
 export async function POST(req: Request) {
   try {
@@ -45,7 +48,7 @@ export async function POST(req: Request) {
 
       const { data: transaction } = await supabase
         .from("transactions")
-        .select("id, status")
+        .select("id, status, amount_fcfa, user_id")
         .eq("geniuspay_reference", reference)
         .maybeSingle();
 
@@ -70,28 +73,56 @@ export async function POST(req: Request) {
         })
         .eq("id", transaction.id);
 
-      if (actionType === "NEW_AD" && adId) {
-        await supabase
-          .from("ads")
-          .update({ status: "ONLINE", updated_at: new Date().toISOString() })
-          .eq("id", adId);
-      } else if (actionType === "BOOST" && adId) {
-        await supabase
-          .from("ads")
-          .update({ is_boosted: true, boosted_at: new Date().toISOString() })
-          .eq("id", adId);
-      } else if (actionType === "RENEWAL" && adId) {
-        await supabase
-          .from("ads")
-          .update({
-            status: "ONLINE",
-            expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-          })
-          .eq("id", adId);
+      let adTitle: string | undefined;
+      if (adId) {
+        const { data: adRow } = await supabase.from("ads").select("title, formula").eq("id", adId).maybeSingle();
+        adTitle = adRow?.title;
+
+        if (actionType === "NEW_AD") {
+          await supabase
+            .from("ads")
+            .update({ status: "ONLINE", updated_at: new Date().toISOString() })
+            .eq("id", adId);
+        } else if (actionType === "BOOST") {
+          await supabase
+            .from("ads")
+            .update({ is_boosted: true, boosted_at: new Date().toISOString() })
+            .eq("id", adId);
+        } else if (actionType === "RENEWAL" && adRow?.formula) {
+          const formulaConfig = FORMULAS[adRow.formula as FormulaId];
+          const now = Date.now();
+          await supabase
+            .from("ads")
+            .update({
+              status: "ONLINE",
+              expires_at: new Date(now + formulaConfig.durationDays * 24 * 3600 * 1000).toISOString(),
+              highlight_expires_at:
+                formulaConfig.highlightDays > 0
+                  ? new Date(now + formulaConfig.highlightDays * 24 * 3600 * 1000).toISOString()
+                  : null,
+            })
+            .eq("id", adId);
+        }
+        // EDIT : la transaction est marquée COMPLETED, aucune mise à jour de
+        // contenu n'est déclenchée ici — la mise à jour des champs de
+        // l'annonce éditée est hors périmètre de ce webhook de paiement.
       }
-      // EDIT : la transaction est marquée COMPLETED, aucune mise à jour de
-      // contenu n'est déclenchée ici — la mise à jour des champs de
-      // l'annonce éditée est hors périmètre de ce webhook de paiement.
+
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("email")
+        .eq("id", transaction.user_id)
+        .maybeSingle();
+      if (userRow?.email) {
+        await sendReceiptEmail({
+          email: userRow.email,
+          type: actionType as "NEW_AD" | "BOOST" | "RENEWAL" | "EDIT",
+          reference,
+          amountFcfa: transaction.amount_fcfa,
+          adTitle,
+          adId,
+        });
+      }
 
       console.log(`[GeniusPay] Action ${actionType} activée avec succès pour annonce ${adId}`);
     }
