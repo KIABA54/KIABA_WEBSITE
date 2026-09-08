@@ -1,0 +1,133 @@
+// =========================================================================
+// CONSTANTES ET RÈGLES DE GESTION - KIABA RENCONTRE
+// =========================================================================
+
+export const SITE_NAME = "KIABA RENCONTRE";
+export const SITE_TAGLINE = "Petites annonces pour adultes en toute discrétion";
+
+// Formules d'annonces
+export interface FormulaConfig {
+  id: "STANDARD" | "PRO" | "PRO_PLUS" | "VIP";
+  name: string;
+  price: number; // en FCFA
+  durationDays: number;
+  highlightDays: number;
+  badgeLabel: string;
+  badgeColor: string;
+  isPopular?: boolean;
+  description: string;
+}
+
+export const FORMULAS: Record<string, FormulaConfig> = {
+  STANDARD: {
+    id: "STANDARD",
+    name: "Standard",
+    price: 1200,
+    durationDays: 7,
+    highlightDays: 0,
+    badgeLabel: "STANDARD",
+    badgeColor: "bg-slate-200 text-slate-800",
+    description: "Durée 7 jours, publication standard (1ère annonce GRATUITE pour les nouveaux comptes)",
+  },
+  PRO: {
+    id: "PRO",
+    name: "Pro",
+    price: 3400,
+    durationDays: 10,
+    highlightDays: 7,
+    badgeLabel: "PRO",
+    badgeColor: "bg-gradient-to-r from-blue-600 to-sky-500 text-white font-bold",
+    description: "Durée 10 jours, mise en avant garantie pendant 7 jours",
+  },
+  PRO_PLUS: {
+    id: "PRO_PLUS",
+    name: "Pro (+)",
+    price: 5600,
+    durationDays: 15,
+    highlightDays: 15,
+    badgeLabel: "PRO (+)",
+    badgeColor: "bg-gradient-to-r from-pink-500 to-blue-600 text-white font-bold",
+    isPopular: true,
+    description: "Durée 15 jours, mise en avant pendant TOUTE la durée de vie",
+  },
+  VIP: {
+    id: "VIP",
+    name: "VIP",
+    price: 15800,
+    durationDays: 30,
+    highlightDays: 30,
+    badgeLabel: "VIP",
+    badgeColor: "bg-gradient-to-r from-amber-500 via-pink-500 to-rose-600 text-white font-extrabold shadow-md",
+    description: "Durée 30 jours, visibilité maximale et mise en avant permanente sur 30 jours",
+  },
+};
+
+// Tarifs des opérations
+export const EDIT_AD_PRICE = 999; // Modification d'annonce en FCFA
+export const BOOST_PERCENTAGE = 0.60; // 60% du prix d'origine de la formule
+
+// Catégories et Sous-catégories obligatoires
+export const CATEGORIES = [
+  {
+    id: "escorte-girl",
+    label: "Escorte Girl",
+    icon: "Heart",
+    subcategories: [
+      "Vaginal",
+      "Anal / sodomie",
+      "Fellation",
+      "Escorte événementielle",
+      "Partouze",
+    ],
+  },
+  {
+    id: "escorte-boy",
+    label: "Escorte Boy",
+    icon: "User",
+    subcategories: [
+      "Passif",
+      "Actif",
+      "Escorte événementielle",
+    ],
+  },
+  {
+    id: "transgenre",
+    label: "Transgenre",
+    icon: "Sparkles",
+    subcategories: [
+      "Femme trans",
+      "Homme trans",
+      "Escorte événementielle",
+    ],
+  },
+  {
+    id: "massage",
+    label: "Massage",
+    icon: "Flame",
+    subcategories: [
+      "Massage relaxant",
+      "Massage bien-être",
+      "Massage à domicile",
+      "Massage duo",
+      "Massage VIP",
+    ],
+  },
+] as const;
+
+// Types de clientèle acceptée
+export const CLIENT_TYPES = [
+  { id: "HOMME", label: "Homme" },
+  { id: "FEMME", label: "Femme" },
+  { id: "TRANSGENRE", label: "Transgenre" },
+  { id: "TOUS", label: "Tout type de sexe" },
+] as const;
+
+// Canaux de contact
+export const CONTACT_CHANNELS = [
+  { id: "WHATSAPP", label: "WhatsApp uniquement" },
+  { id: "CALL", label: "Appel téléphonique uniquement" },
+  { id: "BOTH", label: "WhatsApp et Appel" },
+] as const;
+
+// Genres d'utilisateurs à l'inscription
+export const GENDERS = ["Femme", "Homme", "Transgenre"] as const;
