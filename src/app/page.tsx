@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import SearchBar from "@/components/SearchBar";
 import CategoryPills from "@/components/CategoryPills";
-import FeaturedCarousel from "@/components/FeaturedCarousel";
 import CityPills from "@/components/CityPills";
 import AdCard from "@/components/AdCard";
 import FilterDrawer from "@/components/FilterDrawer";
@@ -99,9 +98,6 @@ export default function HomePage() {
         onSelectCategory={setSelectedCategory}
         counts={categoryCounts}
       />
-
-      {/* 3. VOS ANNONCES ÉTOILES (CONFORME CAPTURE 3) */}
-      <FeaturedCarousel ads={ads} />
 
       {/* 4. VILLES POPULAIRES (CONFORME CAPTURE 2 & 3) */}
       <div id="villes-populaires" className="scroll-mt-20">

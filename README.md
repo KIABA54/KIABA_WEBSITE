@@ -16,7 +16,7 @@ Plateforme web moderne, ultra-rapide et responsive mobile-first conçue avec **N
 1. **Standard** : 7 jours | 1 200 FCFA | **1ère annonce 100% GRATUITE pour chaque nouvel inscrit**.
 2. **Pro** : 10 jours (7 jours de mise en avant) | 3 400 FCFA.
 3. **Pro (+)** : 15 jours (15 jours de mise en avant totale) | 5 600 FCFA.
-4. **VIP** : 30 jours (30 jours de mise en avant permanente + carrousel VIP) | 15 800 FCFA.
+4. **VIP** : 30 jours (30 jours de mise en avant permanente) | 15 800 FCFA.
 5. **Boost en cours de vie** : **60% du prix d'origine** pour mettre l'annonce en avant pour le reste de sa durée de vie.
 6. **Modification d'annonce active** : Forfait fixe de **999 FCFA**.
 7. **Renouvellement après expiration** : Même prix que la formule d'origine.
