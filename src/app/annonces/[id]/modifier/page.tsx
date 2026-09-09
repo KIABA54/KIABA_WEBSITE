@@ -229,6 +229,11 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
       }
 
       if (data.free) {
+        // La page de l'annonce a très probablement déjà été visitée juste
+        // avant (c'est comme ça qu'on arrive sur ce formulaire) — sans
+        // refresh(), Next.js peut resservir sa version mise en cache
+        // AVANT modification, donnant l'impression que rien n'a changé.
+        router.refresh();
         router.push(`/annonces/${resolvedParams.id}`);
       } else if (data.checkout_url) {
         window.location.href = data.checkout_url;

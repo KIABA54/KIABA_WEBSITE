@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import PasswordField from "@/components/PasswordField";
+import { isSafeRedirectPath } from "@/lib/safeRedirect";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -36,7 +37,7 @@ function LoginPageContent() {
         return;
       }
       const next = searchParams.get("next");
-      router.push(next && next.startsWith("/") ? next : "/profil");
+      router.push(isSafeRedirectPath(next) ? next : "/profil");
       router.refresh();
     } catch {
       setErrorMsg("Erreur réseau. Veuillez réessayer.");
