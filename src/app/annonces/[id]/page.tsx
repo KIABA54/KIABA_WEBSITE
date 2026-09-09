@@ -12,6 +12,21 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+// Titres d'annonces rédigés librement par les utilisateurs, parfois bien
+// au-delà des ~60 caractères que Google/Bing affichent avant de tronquer —
+// Bing signale même ça comme une erreur SEO ("Title too long"). On raccourcit
+// donc le TITRE DE LA BALISE <title> uniquement ; le H1 affiché sur la page
+// garde le titre complet tel que l'utilisateur l'a écrit.
+const TITLE_TAG_BUDGET = 60;
+const BRAND_SUFFIX = " | KIABA RENCONTRE";
+
+function truncateForTitleTag(adTitle: string, cityLabel: string): string {
+  const cityPart = ` — ${cityLabel}`;
+  const available = TITLE_TAG_BUDGET - BRAND_SUFFIX.length - cityPart.length;
+  if (adTitle.length <= available) return `${adTitle}${cityPart}`;
+  return `${adTitle.slice(0, Math.max(0, available - 1)).trimEnd()}…${cityPart}`;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const ad = await getAdById(id);
@@ -24,9 +39,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // Le <title> passe par le template du layout racine (title.template),
   // qui ajoute déjà "| KIABA RENCONTRE" — ne pas le répéter ici. En
   // revanche openGraph.title/twitter.title ne sont PAS templatés par
-  // Next.js : ces champs veulent une chaîne complète, donc ils le portent.
-  const pageTitle = `${ad.title} — ${cityLabel}`;
-  const socialTitle = `${pageTitle} | KIABA RENCONTRE`;
+  // Next.js : ces champs veulent une chaîne complète, donc ils le portent
+  // (avec le titre complet, non tronqué — seule la balise <title> a une
+  // vraie contrainte de longueur pour l'affichage dans les résultats).
+  const pageTitle = truncateForTitleTag(ad.title, cityLabel);
+  const socialTitle = `${ad.title} — ${cityLabel} | KIABA RENCONTRE`;
   const description = ad.description.slice(0, 155);
 
   return {
@@ -126,7 +143,7 @@ export default async function AdDetailPage({ params }: PageProps) {
             >
               <img
                 src={ad.user?.profile_photo_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-                alt=""
+                alt={`Photo de profil de ${ad.user?.username || "l'annonceur"}`}
                 className="w-6 h-6 rounded-full object-cover border border-brand-pink-500"
               />
               <span className="underline decoration-dotted underline-offset-2">{ad.user?.username || "Annonceur"}</span>

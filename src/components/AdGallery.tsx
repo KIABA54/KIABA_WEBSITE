@@ -85,7 +85,7 @@ export default function AdGallery({ photos, title, formula, isBoosted }: AdGalle
                   : "border-transparent opacity-60 hover:opacity-100"
               }`}
             >
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <img src={url} alt={`${title} — photo ${idx + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
