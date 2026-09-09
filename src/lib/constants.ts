@@ -11,8 +11,12 @@ export const SITE_LOGO_URL =
 export const SITE_FAVICON_URL =
   "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/favicon.png";
 // Image affichée quand un lien du site est partagé (Open Graph / Twitter Card).
+// Format JPEG et poids volontairement réduits (~170 Ko, contre 2,2 Mo pour le
+// PNG d'origine) : WhatsApp abandonne le fetch d'une image og:image trop
+// lourde et retombe silencieusement sur le favicon comme aperçu — Telegram,
+// moins strict, affichait déjà la bonne image avant ce changement.
 export const SITE_OG_IMAGE_URL =
-  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/kiabaog.png";
+  "https://vhhixwrzekglldtgskfp.supabase.co/storage/v1/object/public/ITEMS/kiabaog.jpg";
 
 // Âge minimum légal pour s'inscrire — site pour adultes uniquement. Vérifié
 // UNIQUEMENT côté client jusqu'ici (formulaire d'inscription) : sans ce
