@@ -31,6 +31,7 @@ export const getSimilarAds = cache(
       .eq("category", category)
       .neq("id", excludeId)
       .order("is_boosted", { ascending: false })
+      .order("highlight_expires_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -96,6 +97,7 @@ export const getOnlineAdsPage = cache(async (limit = 12): Promise<AdsPageResult>
     .select(AD_SELECT_WITH_RELATIONS, { count: "exact" })
     .eq("status", "ONLINE")
     .order("is_boosted", { ascending: false })
+    .order("highlight_expires_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .range(0, limit - 1);
 
@@ -140,6 +142,7 @@ export const getPublicAdvertiserAds = cache(async (userId: string): Promise<Ad[]
     .eq("user_id", userId)
     .eq("status", "ONLINE")
     .order("is_boosted", { ascending: false })
+    .order("highlight_expires_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -155,6 +158,7 @@ export const getOnlineAdsByCity = cache(async (cityId: string, limit = 24): Prom
     .eq("status", "ONLINE")
     .eq("city", cityId)
     .order("is_boosted", { ascending: false })
+    .order("highlight_expires_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .range(0, limit - 1);
 

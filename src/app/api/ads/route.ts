@@ -321,6 +321,7 @@ export async function GET(req: Request) {
       .select(AD_SELECT_WITH_RELATIONS, { count: "exact" })
       .eq("status", "ONLINE")
       .order("is_boosted", { ascending: false })
+      .order("highlight_expires_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
