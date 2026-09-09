@@ -195,7 +195,14 @@ export default function RegisterPage() {
         return;
       }
 
-      // Le cookie de session est déjà posé par l'API (auto-login).
+      // Le cookie de session est déjà posé par l'API (auto-login). Sans
+      // router.refresh() ici, le cache de routage client de Next.js peut
+      // encore contenir une réponse "non connecté" pour /annonces/nouvelle
+      // ou /profil visitée juste avant l'inscription — un clic sur les
+      // boutons de l'étape 3 servirait alors cette version périmée et
+      // renverrait l'utilisateur à /connexion malgré une session valide.
+      // (connexion/page.tsx et mot-de-passe-oublie/page.tsx font déjà ça.)
+      router.refresh();
       setStep(3);
     } catch {
       setErrorMsg("Erreur réseau. Veuillez réessayer.");
