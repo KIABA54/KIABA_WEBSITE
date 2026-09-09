@@ -104,3 +104,21 @@ export const getOnlineAdsPage = cache(async (limit = 12): Promise<AdsPageResult>
     total: count || 0,
   };
 });
+
+/** Annonces en ligne d'une ville donnée — pages SEO dédiées /annonces/ville/[city]. */
+export const getOnlineAdsByCity = cache(async (cityId: string, limit = 24): Promise<AdsPageResult> => {
+  const supabase = createAdminClient();
+  const { data, count } = await supabase
+    .from("ads")
+    .select(AD_SELECT_WITH_RELATIONS, { count: "exact" })
+    .eq("status", "ONLINE")
+    .eq("city", cityId)
+    .order("is_boosted", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(0, limit - 1);
+
+  return {
+    ads: ((data as unknown as AdRow[] | null) || []).map(mapAdRow),
+    total: count || 0,
+  };
+});

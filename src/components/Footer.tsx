@@ -1,10 +1,36 @@
 import Link from "next/link";
 import { AlertTriangle, Heart } from "lucide-react";
+import { CITIES } from "@/lib/constants";
+
+// Sous-ensemble fixe (pas d'appel base de données) : le footer est rendu
+// sur chaque page du site, une requête ville par ville ici pèserait sur
+// tout le site pour un gain marginal — ce maillage suffit à faire découvrir
+// les pages /annonces/ville/[city] aux moteurs de recherche.
+const FEATURED_CITY_IDS = ["abidjan", "bouake", "yamoussoukro", "san-pedro", "korhogo", "daloa", "gagnoa", "man"];
+const FEATURED_CITIES = CITIES.filter((c) => FEATURED_CITY_IDS.includes(c.id));
 
 export default function Footer() {
   return (
     <footer className="mt-8 border-t border-slate-200 bg-white">
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-4 sm:space-y-6">
+        {/* MAILLAGE INTERNE : villes principales */}
+        <div className="space-y-1.5">
+          <h2 className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+            Annonces par ville
+          </h2>
+          <nav aria-label="Villes principales" className="flex flex-wrap gap-x-3 gap-y-1">
+            {FEATURED_CITIES.map((c) => (
+              <Link
+                key={c.id}
+                href={`/annonces/ville/${c.id}`}
+                className="text-xs font-semibold text-slate-500 hover:text-brand-pink-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500"
+              >
+                {c.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
         {/* AVERTISSEMENT DE SÉCURITÉ */}
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs leading-relaxed flex items-start gap-3">
           <AlertTriangle
