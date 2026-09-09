@@ -21,10 +21,10 @@ function PaymentFailureContent() {
             Paiement Non Abouti
           </span>
           <h1 className="text-xl font-black text-slate-900 mt-2">
-            Le paiement n'a pas abouti
+            Le paiement n&apos;a pas abouti
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Aucun montant n'a été débité. Votre annonce n'a pas été publiée.
+            Aucun montant n&apos;a été débité. Votre annonce n&apos;a pas été publiée.
           </p>
         </div>
 
@@ -57,7 +57,7 @@ function PaymentFailureContent() {
             className="w-full py-2.5 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-2"
           >
             <Home className="w-4 h-4 text-slate-500" />
-            <span>Retour à l'accueil</span>
+            <span>Retour à l&apos;accueil</span>
           </Link>
         </div>
       </div>

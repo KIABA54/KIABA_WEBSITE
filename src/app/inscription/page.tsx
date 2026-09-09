@@ -251,6 +251,7 @@ export default function RegisterPage() {
                 {isUploadingPhoto ? (
                   <Loader2 className="w-6 h-6 text-brand-pink-500 animate-spin" />
                 ) : profilePhoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage, hors domaines optimisés par défaut — voir next.config.ts
                   <img src={profilePhoto} alt="Profil" className="w-full h-full object-cover" />
                 ) : (
                   <Camera className="w-6 h-6 text-slate-300" />
@@ -279,7 +280,7 @@ export default function RegisterPage() {
           {/* Pseudo */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Nom d'utilisateur <span className="text-rose-500">*</span>
+              Nom d&apos;utilisateur <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

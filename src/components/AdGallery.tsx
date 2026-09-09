@@ -49,6 +49,7 @@ export default function AdGallery({ photos, title, formula, isBoosted }: AdGalle
           className="absolute inset-0 w-full h-full cursor-zoom-in group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-inset"
           aria-label={`Agrandir la photo ${activePhotoIdx + 1} sur ${photos.length}`}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
           <img
             src={photos[activePhotoIdx]}
             alt={title}
@@ -131,6 +132,7 @@ export default function AdGallery({ photos, title, formula, isBoosted }: AdGalle
                   : "border-transparent opacity-60 hover:opacity-100"
               }`}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
               <img src={url} alt={`${title} — photo ${idx + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
@@ -155,6 +157,7 @@ export default function AdGallery({ photos, title, formula, isBoosted }: AdGalle
             <X className="w-5 h-5" />
           </button>
 
+          {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
           <img
             src={photos[activePhotoIdx]}
             alt={title}

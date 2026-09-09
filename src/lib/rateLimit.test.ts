@@ -11,11 +11,11 @@ interface Row {
 let store: Map<string, Row>;
 let forceSelectError = false;
 
-function makeQueryBuilder(table: string) {
+function makeQueryBuilder() {
   const filters: Record<string, unknown> = {};
   let pendingUpdate: Record<string, unknown> | null = null;
 
-  const builder: any = {
+  const builder = {
     select() {
       return builder;
     },
@@ -55,7 +55,7 @@ function makeQueryBuilder(table: string) {
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
-    from: (table: string) => makeQueryBuilder(table),
+    from: () => makeQueryBuilder(),
   }),
 }));
 

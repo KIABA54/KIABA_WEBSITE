@@ -35,8 +35,6 @@ export default function HomeAdsExplorer({ initialAds, initialTotal, initialStats
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
-  const [stats, setStats] = useState<AdsStats | null>(initialStats);
-
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -119,12 +117,12 @@ export default function HomeAdsExplorer({ initialAds, initialTotal, initialStats
     setSearchInput("");
   };
 
-  const categoryCounts = useMemo(() => {
-    if (!stats) return undefined;
-    return { all: stats.total, ...stats.byCategory };
-  }, [stats]);
+  const categoryCounts = useMemo(
+    () => ({ all: initialStats.total, ...initialStats.byCategory }),
+    [initialStats]
+  );
 
-  const cityCounts = stats?.topCities || [];
+  const cityCounts = initialStats.topCities;
 
   const totalPages = pagination?.totalPages || 0;
 

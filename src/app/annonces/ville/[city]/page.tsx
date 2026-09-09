@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MapPin } from "lucide-react";
 import AdCard, { AdListState } from "@/components/AdCard";
-import { CITIES, getCityLabel } from "@/lib/constants";
+import { CITIES } from "@/lib/constants";
 import { getOnlineAdsByCity } from "@/lib/supabase/queries";
 
 interface PageProps {
@@ -59,7 +59,6 @@ export default async function CityPage({ params }: PageProps) {
     <div className="max-w-6xl mx-auto space-y-6">
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 

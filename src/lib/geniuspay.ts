@@ -14,7 +14,7 @@ export interface InitiatePaymentParams {
   };
   success_url?: string;
   error_url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface GeniusPayPaymentResponse {
@@ -27,7 +27,7 @@ export interface GeniusPayPaymentResponse {
     status: string;
     checkout_url: string;
     payment_url: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
     expires_at: string;
   };
   error?: {

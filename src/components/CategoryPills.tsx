@@ -31,10 +31,7 @@ export default function CategoryPills({
     <div className="w-full space-y-2">
       <h2 className="text-sm sm:text-base font-extrabold text-brand-blue-900">Catégories</h2>
 
-      <div
-        role="list"
-        className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center pt-3 pb-2 -mt-3 scrollbar-none scroll-fade-x md:scroll-fade-none"
-      >
+      <div className="flex items-center gap-2 md:gap-3 overflow-x-auto md:overflow-visible md:flex-wrap md:justify-center pt-3 pb-2 -mt-3 scrollbar-none scroll-fade-x md:scroll-fade-none">
         {items.map((cat) => {
           const isSelected = selectedCategory === cat.id;
           const Icon = cat.icon;
@@ -43,7 +40,6 @@ export default function CategoryPills({
           return (
             <button
               key={cat.id}
-              role="listitem"
               aria-pressed={isSelected}
               onClick={() => onSelectCategory(cat.id)}
               className="flex flex-col items-center gap-1.5 flex-1 md:flex-none min-w-[64px] md:w-24 group rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"

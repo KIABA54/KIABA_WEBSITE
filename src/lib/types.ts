@@ -67,7 +67,7 @@ export interface Transaction {
   status: "PENDING" | "COMPLETED" | "FAILED" | "CANCELLED";
   payment_method?: string;
   customer_phone?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   completed_at?: string;
 }

@@ -304,6 +304,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
 
       {/* CARTE PROFIL RÉSUMÉ */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+        {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
         <img
           src={user.profile_photo_url}
           alt={user.username}
@@ -398,6 +399,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3"
               >
                 <div className="flex gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
                   <img
                     src={ad.photos[0]}
                     alt={ad.title}
@@ -465,7 +467,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
             ))
           ) : (
             <p className="text-center py-8 text-xs text-slate-500">
-              Vous n'avez aucune annonce en ligne pour le moment.
+              Vous n&apos;avez aucune annonce en ligne pour le moment.
             </p>
           )}
         </div>
@@ -481,6 +483,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3 opacity-90"
               >
                 <div className="flex gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
                   <img
                     src={ad.photos[0]}
                     alt={ad.title}
@@ -597,7 +600,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 • Vos données personnelles et photos seront totalement purgées de notre base de données.
               </p>
               <p className="font-bold text-rose-950 underline">
-                • Votre adresse email ({user.email}) sera inscrite sur la liste d'interdiction (Blacklist). Vous ne pourrez PLUS JAMAIS créer de compte avec cette adresse email sur KIABA RENCONTRE.
+                • Votre adresse email ({user.email}) sera inscrite sur la liste d&apos;interdiction (Blacklist). Vous ne pourrez PLUS JAMAIS créer de compte avec cette adresse email sur KIABA RENCONTRE.
               </p>
             </div>
 
@@ -623,7 +626,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 Booster votre annonce
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                L'annonce sera mise en avant en tête de liste pour tout le reste de sa durée de vie.
+                L&apos;annonce sera mise en avant en tête de liste pour tout le reste de sa durée de vie.
               </p>
             </div>
 
@@ -668,7 +671,7 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
               Supprimer cette annonce ?
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Cette action est <strong>définitive et irréversible</strong>. L'annonce sera immédiatement retirée du site.
+              Cette action est <strong>définitive et irréversible</strong>. L&apos;annonce sera immédiatement retirée du site.
             </p>
             <div className="flex gap-2">
               <button

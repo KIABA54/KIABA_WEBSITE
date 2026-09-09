@@ -111,7 +111,6 @@ export default async function AdDetailPage({ params }: PageProps) {
       <ViewTracker adId={ad.id} />
       <script
         type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
@@ -144,6 +143,7 @@ export default async function AdDetailPage({ params }: PageProps) {
               href={`/annonceur/${ad.user_id}`}
               className="flex items-center gap-1.5 font-bold text-slate-800 hover:text-brand-pink-600 transition-colors rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
               <img
                 src={ad.user?.profile_photo_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
                 alt={`Photo de profil de ${ad.user?.username || "l'annonceur"}`}
@@ -242,7 +242,7 @@ export default async function AdDetailPage({ params }: PageProps) {
         <ShieldAlert className="w-5 h-5 text-brand-pink-500 flex-shrink-0 mt-0.5" />
         <div>
           <strong className="text-slate-900 block mb-1">Rappel de sécurité pour les rencontres :</strong>
-          N'envoyez jamais d'argent à l'avance pour un transport ou une caution imaginaire. Privilégiez toujours la prudence, l'hygiène et le respect mutuel.
+          N&apos;envoyez jamais d&apos;argent à l&apos;avance pour un transport ou une caution imaginaire. Privilégiez toujours la prudence, l&apos;hygiène et le respect mutuel.
         </div>
       </div>
 

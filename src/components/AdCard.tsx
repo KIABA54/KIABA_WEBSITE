@@ -43,6 +43,7 @@ export default function AdCard({ ad }: AdCardProps) {
           href={adHref}
           className="relative w-28 h-36 sm:w-32 sm:h-40 rounded-xl overflow-hidden flex-shrink-0 bg-slate-200 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
         >
+          {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
           <img
             src={ad.photos[0]}
             alt={ad.title}

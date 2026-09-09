@@ -231,7 +231,7 @@ export default function NewAdPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <Camera className="w-4 h-4 text-brand-pink-500" />
-              <span>Photos de l'annonce</span>
+              <span>Photos de l&apos;annonce</span>
               <span className="text-rose-500">*</span>
             </h2>
             <span className="text-xs font-bold text-slate-500">
@@ -245,6 +245,7 @@ export default function NewAdPage() {
                 key={idx}
                 className="relative aspect-square rounded-xl overflow-hidden border-2 border-brand-pink-200 group bg-slate-100"
               >
+                {/* eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage (ou Unsplash pour le placeholder), hors domaines optimisés par défaut — voir next.config.ts */}
                 <img src={url} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
@@ -290,12 +291,12 @@ export default function NewAdPage() {
         {/* SECTION 2 : INFORMATIONS PRINCIPALES */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Détails de l'annonce
+            Détails de l&apos;annonce
           </h2>
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-              Titre de l'annonce <span className="text-rose-500">*</span>
+              Titre de l&apos;annonce <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
