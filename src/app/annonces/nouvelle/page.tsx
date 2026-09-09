@@ -177,7 +177,11 @@ export default function NewAdPage() {
       }
 
       if (data.free) {
-        router.push(`/paiement/succes?type=free&amount=0&adId=${data.ad_id}`);
+        // Va directement sur l'annonce plutôt que par la page de reçu
+        // intermédiaire : c'est le résultat concret que l'utilisateur veut
+        // voir après publication, sans détour ni dépendance à une page dont
+        // le contenu dynamique ne s'affiche qu'après hydratation JS.
+        router.push(`/annonces/${data.ad_id}`);
       } else if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {
