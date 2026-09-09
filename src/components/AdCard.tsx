@@ -13,12 +13,15 @@ import {
 } from "lucide-react";
 import { Ad } from "@/lib/types";
 import { FORMULAS, getCityLabel } from "@/lib/constants";
+import { buildAdSlug } from "@/lib/slug";
 
 interface AdCardProps {
   ad: Ad;
 }
 
 export default function AdCard({ ad }: AdCardProps) {
+  const adHref = `/annonces/${buildAdSlug(ad.title, ad.id)}`;
+
   const getRelativeTime = (dateStr: string) => {
     const diffMs = Date.now() - new Date(dateStr).getTime();
     const diffMin = Math.floor(diffMs / 60000);
@@ -37,7 +40,7 @@ export default function AdCard({ ad }: AdCardProps) {
       <div className="flex gap-3">
         {/* VIGNETTE PHOTO */}
         <Link
-          href={`/annonces/${ad.id}`}
+          href={adHref}
           className="relative w-28 h-36 sm:w-32 sm:h-40 rounded-xl overflow-hidden flex-shrink-0 bg-slate-200 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500 focus-visible:ring-offset-2"
         >
           <img
@@ -62,7 +65,7 @@ export default function AdCard({ ad }: AdCardProps) {
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
             <Link
-              href={`/annonces/${ad.id}`}
+              href={adHref}
               className="rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink-500"
             >
               <h3 className="text-xs sm:text-sm font-extrabold text-brand-blue-900 line-clamp-2 leading-tight hover:text-brand-pink-600 transition-colors mb-1.5">

@@ -75,16 +75,16 @@ export interface AdsPageResult {
  * sitemaps (plusieurs fichiers), pas la peine avant longtemps ici.
  */
 export const getAllOnlineAdIdsForSitemap = cache(
-  async (): Promise<{ id: string; updated_at: string }[]> => {
+  async (): Promise<{ id: string; title: string; updated_at: string }[]> => {
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("ads")
-      .select("id, updated_at")
+      .select("id, title, updated_at")
       .eq("status", "ONLINE")
       .order("updated_at", { ascending: false })
       .limit(45000);
 
-    return (data as { id: string; updated_at: string }[] | null) || [];
+    return (data as { id: string; title: string; updated_at: string }[] | null) || [];
   }
 );
 

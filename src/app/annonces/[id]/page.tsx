@@ -7,8 +7,11 @@ import ShareButton from "@/components/ShareButton";
 import ViewTracker from "@/components/ViewTracker";
 import { getCityLabel } from "@/lib/constants";
 import { getAdById, getSimilarAds } from "@/lib/supabase/queries";
+import { buildAdSlug, extractAdId } from "@/lib/slug";
 
 interface PageProps {
+  // Le segment contient soit un UUID nu (anciens liens déjà indexés), soit
+  // "titre-en-slug-<uuid>" (nouveaux liens) — extractAdId() gère les deux.
   params: Promise<{ id: string }>;
 }
 
@@ -29,7 +32,7 @@ function truncateForTitleTag(adTitle: string, cityLabel: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const ad = await getAdById(id);
+  const ad = await getAdById(extractAdId(id));
 
   if (!ad) {
     return { title: "Annonce introuvable" };
@@ -49,7 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: pageTitle,
     description,
-    alternates: { canonical: `/annonces/${ad.id}` },
+    alternates: { canonical: `/annonces/${buildAdSlug(ad.title, ad.id)}` },
     openGraph: {
       title: socialTitle,
       description,
@@ -67,7 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function AdDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const ad = await getAdById(id);
+  const ad = await getAdById(extractAdId(id));
 
   if (!ad) {
     return (

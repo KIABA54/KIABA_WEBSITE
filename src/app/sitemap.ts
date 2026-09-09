@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllOnlineAdIdsForSitemap } from "@/lib/supabase/queries";
 import { CITIES } from "@/lib/constants";
+import { buildAdSlug } from "@/lib/slug";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_APP_URL || "https://www.ci-kiaba.com";
@@ -20,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const ads = await getAllOnlineAdIdsForSitemap();
   const adPages: MetadataRoute.Sitemap = ads.map((ad) => ({
-    url: `${base}/annonces/${ad.id}`,
+    url: `${base}/annonces/${buildAdSlug(ad.title, ad.id)}`,
     lastModified: ad.updated_at,
     changeFrequency: "daily",
     priority: 0.7,

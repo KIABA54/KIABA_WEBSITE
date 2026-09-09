@@ -1,4 +1,5 @@
 import { SITE_LOGO_URL } from "./constants";
+import { buildAdSlug } from "./slug";
 
 // =========================================================================
 // GABARIT D'EMAIL KIABA RENCONTRE
@@ -201,7 +202,14 @@ export function receiptTemplate(params: {
         </tr>
       </table>
 
-      ${params.adId ? ctaButton("Voir mon annonce", `${params.appUrl}/annonces/${params.adId}`) : ""}
+      ${
+        params.adId
+          ? ctaButton(
+              "Voir mon annonce",
+              `${params.appUrl}/annonces/${buildAdSlug(params.adTitle || "", params.adId)}`
+            )
+          : ""
+      }
     `,
   });
 }
