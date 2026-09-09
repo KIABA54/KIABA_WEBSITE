@@ -131,6 +131,21 @@ export async function getUserAds(userId: string): Promise<Ad[]> {
   return ((data as unknown as AdRow[] | null) || []).map(mapAdRow);
 }
 
+/** Annonces en ligne d'un annonceur donné — page publique /annonceur/[userId]. */
+export const getPublicAdvertiserAds = cache(async (userId: string): Promise<Ad[]> => {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("ads")
+    .select(AD_SELECT_WITH_RELATIONS)
+    .eq("user_id", userId)
+    .eq("status", "ONLINE")
+    .order("is_boosted", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  return ((data as unknown as AdRow[] | null) || []).map(mapAdRow);
+});
+
 /** Annonces en ligne d'une ville donnée — pages SEO dédiées /annonces/ville/[city]. */
 export const getOnlineAdsByCity = cache(async (cityId: string, limit = 24): Promise<AdsPageResult> => {
   const supabase = createAdminClient();
