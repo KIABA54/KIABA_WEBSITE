@@ -4,6 +4,7 @@ import { hashPassword, generateOtpCode } from "@/lib/auth";
 import { sendOtpEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
 import { isAdultBirthDate } from "@/lib/constants";
+import { runInBackground } from "@/lib/backgroundTask";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -107,7 +108,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Erreur lors de la génération du code de vérification." }, { status: 500 });
     }
 
-    await sendOtpEmail(normalizedEmail, otpCode);
+    runInBackground(() => sendOtpEmail(normalizedEmail, otpCode));
 
     return NextResponse.json({
       success: true,

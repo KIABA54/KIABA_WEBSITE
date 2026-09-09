@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendForgotPasswordOtpEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
 import { generateOtpCode } from "@/lib/auth";
+import { runInBackground } from "@/lib/backgroundTask";
 
 // Mot de passe oublié, utilisateur DÉCONNECTÉ (voir /api/auth/change-password
 // pour le changement depuis un profil déjà connecté). Réponse volontairement
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
   });
 
   if (!error) {
-    await sendForgotPasswordOtpEmail(normalizedEmail, otpCode);
+    runInBackground(() => sendForgotPasswordOtpEmail(normalizedEmail, otpCode));
   }
 
   return genericResponse;

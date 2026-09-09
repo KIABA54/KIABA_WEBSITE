@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 import { FORMULAS, BOOST_PERCENTAGE } from "@/lib/constants";
 import { sendReceiptEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import type { FormulaId } from "@/lib/types";
 
 // Cette route gère uniquement BOOST et RENEWAL sur une annonce EXISTANTE.
@@ -119,14 +120,16 @@ export async function POST(req: Request) {
           .eq("id", ad.id);
       }
 
-      await sendReceiptEmail({
-        email: session.email,
-        type: actionType,
-        reference: `FREE-${transaction.id.slice(0, 8).toUpperCase()}`,
-        amountFcfa: 0,
-        adTitle: ad.title,
-        adId: ad.id,
-      });
+      runInBackground(() =>
+        sendReceiptEmail({
+          email: session.email,
+          type: actionType,
+          reference: `FREE-${transaction.id.slice(0, 8).toUpperCase()}`,
+          amountFcfa: 0,
+          adTitle: ad.title,
+          adId: ad.id,
+        })
+      );
 
       return NextResponse.json({ success: true, free: true });
     }

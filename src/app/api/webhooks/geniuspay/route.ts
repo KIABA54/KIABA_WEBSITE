@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyGeniusPayWebhook } from "@/lib/geniuspay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReceiptEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import { FORMULAS } from "@/lib/constants";
 import type { FormulaId } from "@/lib/types";
 
@@ -135,14 +136,18 @@ export async function POST(req: Request) {
         .eq("id", transaction.user_id)
         .maybeSingle();
       if (userRow?.email) {
-        await sendReceiptEmail({
-          email: userRow.email,
-          type: actionType as "NEW_AD" | "BOOST" | "RENEWAL" | "EDIT",
-          reference,
-          amountFcfa: transaction.amount_fcfa,
-          adTitle,
-          adId,
-        });
+        // GeniusPay attend un accusé de réception rapide sur ce webhook —
+        // ne jamais le faire attendre après un envoi SMTP.
+        runInBackground(() =>
+          sendReceiptEmail({
+            email: userRow.email,
+            type: actionType as "NEW_AD" | "BOOST" | "RENEWAL" | "EDIT",
+            reference,
+            amountFcfa: transaction.amount_fcfa,
+            adTitle,
+            adId,
+          })
+        );
       }
 
       console.log(`[GeniusPay] Action ${actionType} activée avec succès pour annonce ${adId}`);

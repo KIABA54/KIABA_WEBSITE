@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, clearSession } from "@/lib/auth";
 import { sendAccountDeletedEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Purge définitive du compte : vérifie le code OTP envoyé par
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
 
   await clearSession();
 
-  await sendAccountDeletedEmail(email);
+  runInBackground(() => sendAccountDeletedEmail(email));
 
   return NextResponse.json({ success: true });
 }

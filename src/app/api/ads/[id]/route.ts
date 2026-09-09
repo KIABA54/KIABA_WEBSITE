@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { AD_SELECT_WITH_RELATIONS, mapAdRow, type AdRow } from "@/lib/supabase/ads";
 import { sendAdDeletedEmail, sendReceiptEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import { validateAdContent } from "@/lib/moderation";
 import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
@@ -179,14 +180,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         metadata: { launch_promo: true },
       });
 
-      await sendReceiptEmail({
-        email: session.email,
-        type: "EDIT",
-        reference: `FREE-EDIT-${id.slice(0, 8).toUpperCase()}`,
-        amountFcfa: 0,
-        adTitle: title,
-        adId: id,
-      });
+      runInBackground(() =>
+        sendReceiptEmail({
+          email: session.email,
+          type: "EDIT",
+          reference: `FREE-EDIT-${id.slice(0, 8).toUpperCase()}`,
+          amountFcfa: 0,
+          adTitle: title,
+          adId: id,
+        })
+      );
 
       return NextResponse.json({ success: true, free: true });
     }
@@ -279,7 +282,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Erreur lors de la suppression de l'annonce." }, { status: 500 });
     }
 
-    await sendAdDeletedEmail(session.email, ad.title);
+    runInBackground(() => sendAdDeletedEmail(session.email, ad.title));
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

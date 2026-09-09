@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, generateOtpCode } from "@/lib/auth";
 import { sendAccountDeletionOtpEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Envoie le code OTP requis pour confirmer une suppression de compte.
@@ -31,7 +32,7 @@ export async function POST() {
     return NextResponse.json({ error: "Erreur lors de la génération du code de confirmation." }, { status: 500 });
   }
 
-  await sendAccountDeletionOtpEmail(session.email, otpCode);
+  runInBackground(() => sendAccountDeletionOtpEmail(session.email, otpCode));
 
   return NextResponse.json({ success: true, message: "Code de confirmation envoyé par email." });
 }

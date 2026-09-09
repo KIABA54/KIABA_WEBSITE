@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession, generateOtpCode } from "@/lib/auth";
 import { sendPasswordChangeOtpEmail } from "@/lib/email";
+import { runInBackground } from "@/lib/backgroundTask";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
 
 // Envoie le code OTP requis pour changer de mot de passe depuis le profil
@@ -32,7 +33,7 @@ export async function POST() {
     return NextResponse.json({ error: "Erreur lors de la génération du code." }, { status: 500 });
   }
 
-  await sendPasswordChangeOtpEmail(session.email, otpCode);
+  runInBackground(() => sendPasswordChangeOtpEmail(session.email, otpCode));
 
   return NextResponse.json({ success: true, message: "Code envoyé par email." });
 }

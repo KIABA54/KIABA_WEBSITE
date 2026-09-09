@@ -177,7 +177,7 @@ export default function NewAdPage() {
       }
 
       if (data.free) {
-        router.push("/paiement/succes?ref=FREE-WELCOME&type=free&amount=0");
+        router.push(`/paiement/succes?type=free&amount=0&adId=${data.ad_id}`);
       } else if (data.checkout_url) {
         window.location.href = data.checkout_url;
       } else {

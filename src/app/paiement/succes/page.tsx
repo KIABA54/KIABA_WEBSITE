@@ -27,6 +27,7 @@ interface TransactionInfo {
   type: string;
   amount_fcfa: number;
   payment_method: string | null;
+  ad_id: string | null;
 }
 
 function PaymentSuccessContent() {
@@ -41,6 +42,10 @@ function PaymentSuccessContent() {
   // on ne fait jamais confiance à un montant venu de l'URL pour un paiement
   // réel : on va chercher la vraie transaction côté serveur.
   const reference = searchParams.get("reference") || searchParams.get("ref") || "";
+  // Pour notre propre flux gratuit, l'id de l'annonce vient directement de
+  // l'URL (posé par la page qui nous redirige ici) ; pour un vrai paiement,
+  // il vient de la transaction retrouvée côté serveur ci-dessous.
+  const freeWelcomeAdId = searchParams.get("adId");
 
   const [transaction, setTransaction] = useState<TransactionInfo | null>(null);
   const [isLoading, setIsLoading] = useState(!isFreeWelcome && Boolean(reference));
@@ -74,6 +79,7 @@ function PaymentSuccessContent() {
     );
   }
 
+  const adId = isFreeWelcome ? freeWelcomeAdId : transaction?.ad_id || null;
   const displayAmount = isFreeWelcome ? 0 : transaction?.amount_fcfa ?? null;
   const displayType = isFreeWelcome ? "Publication d'annonce" : TYPE_LABELS[transaction?.type || ""] || "Transaction";
   const displayMethod = isFreeWelcome
@@ -146,12 +152,15 @@ function PaymentSuccessContent() {
         </p>
 
         <div className="pt-2 flex flex-col gap-2.5">
+          {/* Doit pointer vers l'annonce elle-même, pas vers l'accueil — un
+              utilisateur qui vient de publier veut voir CETTE annonce, pas
+              devoir la chercher parmi toutes les autres. */}
           <Link
-            href="/"
+            href={adId ? `/annonces/${adId}` : "/"}
             className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-brand-pink-500 to-rose-600 hover:from-brand-pink-600 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Voir mon annonce sur l'accueil</span>
+            <span>{adId ? "Voir mon annonce" : "Voir les annonces"}</span>
           </Link>
 
           <Link

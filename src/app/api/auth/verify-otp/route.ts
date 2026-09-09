@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createSession } from "@/lib/auth";
 import { sendWelcomeEmail } from "@/lib/email";
 import { checkRateLimit, getClientIp, rateLimitResponseBody } from "@/lib/rateLimit";
+import { runInBackground } from "@/lib/backgroundTask";
 
 export async function POST(req: Request) {
   try {
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
     await createSession(newUser.id, newUser.email);
 
     // 5. Email de bienvenue avec la grille tarifaire complète.
-    await sendWelcomeEmail(newUser.email, metadata.username || "Utilisateur");
+    runInBackground(() => sendWelcomeEmail(newUser.email, metadata.username || "Utilisateur"));
 
     return NextResponse.json({
       success: true,

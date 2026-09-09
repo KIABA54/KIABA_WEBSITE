@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { runInBackground } from "@/lib/backgroundTask";
 import { getSession } from "@/lib/auth";
 import { validateAdContent } from "@/lib/moderation";
 import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
@@ -197,14 +198,19 @@ export async function POST(req: Request) {
         metadata: { free_first_ad: isFreeEligible, launch_promo: launchModeFree },
       });
 
-      await sendReceiptEmail({
-        email: session.email,
-        type: "NEW_AD",
-        reference: `FREE-${adId.slice(0, 8).toUpperCase()}`,
-        amountFcfa: 0,
-        adTitle: title,
-        adId,
-      });
+      // L'envoi SMTP (souvent 1 à quelques secondes) ne doit jamais retarder
+      // la réponse : l'annonce est déjà en ligne, l'utilisateur ne doit pas
+      // attendre l'email pour voir la confirmation / être redirigé.
+      runInBackground(() =>
+        sendReceiptEmail({
+          email: session.email,
+          type: "NEW_AD",
+          reference: `FREE-${adId.slice(0, 8).toUpperCase()}`,
+          amountFcfa: 0,
+          adTitle: title,
+          adId,
+        })
+      );
 
       return NextResponse.json({
         success: true,
