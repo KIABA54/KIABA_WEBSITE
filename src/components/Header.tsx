@@ -6,58 +6,45 @@ import { useEffect, useState } from "react";
 import { Plus, LayoutGrid, LogIn, ArrowLeft, UserCircle2 } from "lucide-react";
 import { SITE_LOGO_URL } from "@/lib/constants";
 
-function useIsAuthenticated(pathname: string) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+interface HeaderState {
+  isAuthenticated: boolean;
+  adCount: number | null;
+}
 
-  // Le Header vit dans le layout racine et n'est jamais démonté entre deux
-  // pages (navigation client-side) : sans `pathname` en dépendance, cet
-  // effet ne tournerait qu'une seule fois au tout premier chargement et
-  // resterait bloqué sur l'état "déconnecté" même après une connexion
-  // réussie qui redirige ailleurs sur le site.
+/**
+ * Auth + compteur d'annonces en une seule requête ("/api/header/state") au
+ * lieu de deux ("/api/auth/me" + "/api/ads/stats") — le Header vivant dans
+ * le layout racine, cet effet tournait à chaque navigation. Dépend de
+ * `pathname` (et non `[]`) pour la même raison qu'avant : le Header n'est
+ * jamais démonté entre deux pages, donc sans ça il resterait bloqué sur
+ * l'état capturé au tout premier chargement même après une connexion
+ * réussie qui redirige ailleurs sur le site.
+ */
+function useHeaderState(pathname: string): HeaderState {
+  const [state, setState] = useState<HeaderState>({ isAuthenticated: false, adCount: null });
+
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (!cancelled) setIsAuthenticated(res.ok);
+    fetch("/api/header/state")
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => {
+        if (!cancelled) setState({ isAuthenticated: Boolean(data.isAuthenticated), adCount: data.adCount });
       })
       .catch(() => {
-        if (!cancelled) setIsAuthenticated(false);
+        if (!cancelled) setState({ isAuthenticated: false, adCount: null });
       });
     return () => {
       cancelled = true;
     };
   }, [pathname]);
 
-  return isAuthenticated;
-}
-
-/** Nombre réel d'annonces en ligne — jamais de chiffre en dur dans l'en-tête. */
-function useAdCount() {
-  const [adCount, setAdCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/ads/stats")
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => {
-        if (!cancelled) setAdCount(data.total);
-      })
-      .catch(() => {
-        if (!cancelled) setAdCount(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return adCount;
+  return state;
 }
 
 export default function Header() {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const isAuthenticated = useIsAuthenticated(pathname);
-  const adCount = useAdCount();
+  const { isAuthenticated, adCount } = useHeaderState(pathname);
   const adCountLabel = adCount === null ? "Annonces" : `${adCount} annonce${adCount === 1 ? "" : "s"}`;
 
   return (
