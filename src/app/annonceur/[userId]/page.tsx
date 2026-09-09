@@ -47,7 +47,7 @@ export default function PublicAdvertiserPage({ params }: { params: Promise<{ use
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex items-center gap-3">
           <img
             src={advertiser.profile_photo_url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100"}
-            alt=""
+            alt={`Photo de profil de ${advertiser.username}`}
             className="w-14 h-14 rounded-full object-cover border-2 border-brand-pink-500 flex-shrink-0"
           />
           <div>

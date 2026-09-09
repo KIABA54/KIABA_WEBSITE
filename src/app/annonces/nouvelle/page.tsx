@@ -2,7 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, CITIES, CLIENT_TYPES, CONTACT_CHANNELS, FORMULAS } from "@/lib/constants";
+import {
+  CATEGORIES,
+  CITIES,
+  CLIENT_TYPES,
+  CONTACT_CHANNELS,
+  FORMULAS,
+  MIN_AD_TITLE_LENGTH,
+  MIN_AD_DESCRIPTION_LENGTH,
+  MAX_AD_PHOTOS as MAX_PHOTOS,
+} from "@/lib/constants";
 import { validateAdContent } from "@/lib/moderation";
 import { compressImageFile } from "@/lib/imageCompress";
 import {
@@ -17,7 +26,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-const MAX_PHOTOS = 5;
 
 export default function NewAdPage() {
   const router = useRouter();
@@ -113,12 +121,12 @@ export default function NewAdPage() {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!title.trim() || title.length < 10) {
-      setErrorMsg("Le titre doit comporter au moins 10 caractères.");
+    if (!title.trim() || title.length < MIN_AD_TITLE_LENGTH) {
+      setErrorMsg(`Le titre doit comporter au moins ${MIN_AD_TITLE_LENGTH} caractères.`);
       return;
     }
-    if (!description.trim() || description.length < 20) {
-      setErrorMsg("La description doit comporter au moins 20 caractères.");
+    if (!description.trim() || description.length < MIN_AD_DESCRIPTION_LENGTH) {
+      setErrorMsg(`La description doit comporter au moins ${MIN_AD_DESCRIPTION_LENGTH} caractères.`);
       return;
     }
     if (!city.trim()) {
@@ -376,7 +384,7 @@ export default function NewAdPage() {
                   <button
                     key={ch.id}
                     type="button"
-                    onClick={() => setContactChannel(ch.id as any)}
+                    onClick={() => setContactChannel(ch.id)}
                     className={`py-2 px-2 rounded-xl border text-xs font-bold text-center transition-all ${
                       contactChannel === ch.id
                         ? "bg-brand-blue-800 text-white border-brand-blue-800"
@@ -403,7 +411,7 @@ export default function NewAdPage() {
                 <button
                   key={cl.id}
                   type="button"
-                  onClick={() => setAcceptedClient(cl.id as any)}
+                  onClick={() => setAcceptedClient(cl.id)}
                   className={`py-2 px-2 rounded-xl border text-xs font-bold text-center transition-all ${
                     acceptedClient === cl.id
                       ? "bg-brand-pink-500 text-white border-brand-pink-500 shadow-sm"

@@ -3,7 +3,7 @@ import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSession } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
-import { FORMULAS, BOOST_PERCENTAGE } from "@/lib/constants";
+import { FORMULAS, BOOST_PERCENTAGE, computeRenewalUpdate } from "@/lib/constants";
 import { sendReceiptEmail } from "@/lib/email";
 import { runInBackground } from "@/lib/backgroundTask";
 import type { FormulaId } from "@/lib/types";
@@ -102,22 +102,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Erreur lors de la création de la transaction." }, { status: 500 });
       }
 
-      const formulaConfig = FORMULAS[ad.formula as FormulaId];
-      const now = Date.now();
       if (actionType === "BOOST") {
         await supabase.from("ads").update({ is_boosted: true, boosted_at: new Date().toISOString() }).eq("id", ad.id);
       } else if (actionType === "RENEWAL") {
-        await supabase
-          .from("ads")
-          .update({
-            status: "ONLINE",
-            expires_at: new Date(now + formulaConfig.durationDays * 24 * 3600 * 1000).toISOString(),
-            highlight_expires_at:
-              formulaConfig.highlightDays > 0
-                ? new Date(now + formulaConfig.highlightDays * 24 * 3600 * 1000).toISOString()
-                : null,
-          })
-          .eq("id", ad.id);
+        const formulaConfig = FORMULAS[ad.formula as FormulaId];
+        await supabase.from("ads").update(computeRenewalUpdate(formulaConfig)).eq("id", ad.id);
       }
 
       runInBackground(() =>

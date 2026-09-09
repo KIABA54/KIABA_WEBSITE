@@ -4,14 +4,24 @@ import { runInBackground } from "@/lib/backgroundTask";
 import { getSession } from "@/lib/auth";
 import { validateAdContent } from "@/lib/moderation";
 import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
-import { FORMULAS } from "@/lib/constants";
+import {
+  FORMULAS,
+  MIN_AD_TITLE_LENGTH,
+  MIN_AD_DESCRIPTION_LENGTH,
+  MAX_AD_PHOTOS as MAX_PHOTOS,
+  CONTACT_CHANNELS as CONTACT_CHANNEL_OPTIONS,
+  CLIENT_TYPES,
+} from "@/lib/constants";
 import { AD_SELECT_WITH_RELATIONS, mapAdRow, type AdRow } from "@/lib/supabase/ads";
 import { sendReceiptEmail } from "@/lib/email";
-import type { AcceptedClient, ContactChannel, FormulaId } from "@/lib/types";
+import type { FormulaId } from "@/lib/types";
 
-const CONTACT_CHANNELS: ContactChannel[] = ["WHATSAPP", "CALL", "BOTH"];
-const ACCEPTED_CLIENTS: AcceptedClient[] = ["HOMME", "FEMME", "TRANSGENRE", "TOUS"];
-const MAX_PHOTOS = 5;
+// Dérivées de la même source que PATCH /api/ads/[id] (@/lib/constants) —
+// avant, ce fichier avait sa propre copie de ces listes en dur : ajouter un
+// canal de contact dans constants.ts sans mettre à jour cette copie aurait
+// fait rejeter à la création une valeur pourtant valide à la modification.
+const CONTACT_CHANNELS: readonly string[] = CONTACT_CHANNEL_OPTIONS.map((c) => c.id);
+const ACCEPTED_CLIENTS: readonly string[] = CLIENT_TYPES.map((c) => c.id);
 
 interface CreateAdBody {
   title?: string;
@@ -63,11 +73,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Champs obligatoires manquants." }, { status: 400 });
     }
 
-    if (!CONTACT_CHANNELS.includes(contact_channels as ContactChannel)) {
+    if (title.trim().length < MIN_AD_TITLE_LENGTH) {
+      return NextResponse.json(
+        { error: `Le titre doit comporter au moins ${MIN_AD_TITLE_LENGTH} caractères.` },
+        { status: 400 }
+      );
+    }
+    if (description.trim().length < MIN_AD_DESCRIPTION_LENGTH) {
+      return NextResponse.json(
+        { error: `La description doit comporter au moins ${MIN_AD_DESCRIPTION_LENGTH} caractères.` },
+        { status: 400 }
+      );
+    }
+
+    if (!CONTACT_CHANNELS.includes(contact_channels)) {
       return NextResponse.json({ error: "Canal de contact invalide." }, { status: 400 });
     }
 
-    if (!ACCEPTED_CLIENTS.includes(accepted_clients as AcceptedClient)) {
+    if (!ACCEPTED_CLIENTS.includes(accepted_clients)) {
       return NextResponse.json({ error: "Type de clientèle acceptée invalide." }, { status: 400 });
     }
 

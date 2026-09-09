@@ -7,6 +7,7 @@ import {
   EDIT_AD_PRICE,
   BOOST_PERCENTAGE,
   CATEGORIES,
+  computeRenewalUpdate,
 } from "./constants";
 
 describe("CITIES", () => {
@@ -147,5 +148,29 @@ describe("business pricing rules", () => {
     expect(FORMULAS.VIP.durationDays).toBe(30);
     expect(FORMULAS.STANDARD.durationDays).toBe(7);
     expect(FORMULAS.VIP.durationDays).not.toBe(FORMULAS.STANDARD.durationDays);
+  });
+});
+
+describe("computeRenewalUpdate", () => {
+  it("resets is_boosted to false — a renewal is paid at the formula price, never the boost price", () => {
+    // Régression : sans ce reset, une annonce boostée puis expirée puis
+    // renouvelée restait boostée gratuitement et indéfiniment (triée en
+    // tête de liste sans jamais avoir repayé pour le boost).
+    const update = computeRenewalUpdate(FORMULAS.VIP);
+    expect(update.is_boosted).toBe(false);
+    expect(update.boosted_at).toBeNull();
+  });
+
+  it("brings the ad back ONLINE with an expiry matching its own formula duration", () => {
+    const now = Date.now();
+    const update = computeRenewalUpdate(FORMULAS.STANDARD);
+    expect(update.status).toBe("ONLINE");
+    const expiresInDays = (new Date(update.expires_at).getTime() - now) / (24 * 3600 * 1000);
+    expect(Math.round(expiresInDays)).toBe(FORMULAS.STANDARD.durationDays);
+  });
+
+  it("sets highlight_expires_at only for formulas that actually include a highlight", () => {
+    expect(computeRenewalUpdate(FORMULAS.STANDARD).highlight_expires_at).toBeNull();
+    expect(computeRenewalUpdate(FORMULAS.VIP).highlight_expires_at).not.toBeNull();
   });
 });

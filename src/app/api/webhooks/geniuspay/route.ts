@@ -3,7 +3,7 @@ import { verifyGeniusPayWebhook } from "@/lib/geniuspay";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendReceiptEmail } from "@/lib/email";
 import { runInBackground } from "@/lib/backgroundTask";
-import { FORMULAS } from "@/lib/constants";
+import { FORMULAS, computeRenewalUpdate } from "@/lib/constants";
 import type { FormulaId } from "@/lib/types";
 
 export async function POST(req: Request) {
@@ -91,18 +91,7 @@ export async function POST(req: Request) {
             .eq("id", adId);
         } else if (actionType === "RENEWAL" && adRow?.formula) {
           const formulaConfig = FORMULAS[adRow.formula as FormulaId];
-          const now = Date.now();
-          await supabase
-            .from("ads")
-            .update({
-              status: "ONLINE",
-              expires_at: new Date(now + formulaConfig.durationDays * 24 * 3600 * 1000).toISOString(),
-              highlight_expires_at:
-                formulaConfig.highlightDays > 0
-                  ? new Date(now + formulaConfig.highlightDays * 24 * 3600 * 1000).toISOString()
-                  : null,
-            })
-            .eq("id", adId);
+          await supabase.from("ads").update(computeRenewalUpdate(formulaConfig)).eq("id", adId);
         } else if (actionType === "EDIT") {
           // Les champs modifiés attendent dans transactions.metadata.pending_changes
           // (posés par PATCH /api/ads/[id] au moment du paiement) — jamais transmis

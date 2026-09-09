@@ -3,7 +3,16 @@
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CATEGORIES, CITIES, CLIENT_TYPES, CONTACT_CHANNELS, EDIT_AD_PRICE } from "@/lib/constants";
+import {
+  CATEGORIES,
+  CITIES,
+  CLIENT_TYPES,
+  CONTACT_CHANNELS,
+  EDIT_AD_PRICE,
+  MIN_AD_TITLE_LENGTH,
+  MIN_AD_DESCRIPTION_LENGTH,
+  MAX_AD_PHOTOS as MAX_PHOTOS,
+} from "@/lib/constants";
 import { validateAdContent } from "@/lib/moderation";
 import { compressImageFile } from "@/lib/imageCompress";
 import type { Ad, AcceptedClient, ContactChannel } from "@/lib/types";
@@ -20,7 +29,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-const MAX_PHOTOS = 5;
 
 export default function EditAdPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -167,12 +175,12 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
     e.preventDefault();
     setErrorMsg("");
 
-    if (!title.trim() || title.length < 10) {
-      setErrorMsg("Le titre doit comporter au moins 10 caractères.");
+    if (!title.trim() || title.length < MIN_AD_TITLE_LENGTH) {
+      setErrorMsg(`Le titre doit comporter au moins ${MIN_AD_TITLE_LENGTH} caractères.`);
       return;
     }
-    if (!description.trim() || description.length < 20) {
-      setErrorMsg("La description doit comporter au moins 20 caractères.");
+    if (!description.trim() || description.length < MIN_AD_DESCRIPTION_LENGTH) {
+      setErrorMsg(`La description doit comporter au moins ${MIN_AD_DESCRIPTION_LENGTH} caractères.`);
       return;
     }
     if (!city.trim()) {

@@ -90,9 +90,53 @@ export const FORMULAS: Record<string, FormulaConfig> = {
   },
 };
 
+export interface RenewalUpdate {
+  status: "ONLINE";
+  expires_at: string;
+  highlight_expires_at: string | null;
+  is_boosted: false;
+  boosted_at: null;
+}
+
+/**
+ * Champs à écrire sur `ads` pour un renouvellement, à partir de la formule
+ * d'ORIGINE de l'annonce (jamais une valeur en dur — cette même erreur a
+ * déjà été commise séparément dans /api/payments/initiate et le webhook
+ * GeniusPay avant d'être corrigée aux deux endroits ; centralisé ici pour
+ * qu'un futur correctif n'ait plus à être répété deux fois).
+ *
+ * Remet aussi `is_boosted` à `false` : le renouvellement est payé au prix
+ * de la formule seule, jamais au prix boost — sans ce reset, une annonce
+ * boostée puis expirée puis renouvelée restait boostée gratuitement et
+ * indéfiniment (triée en tête de liste sans jamais avoir repayé pour ça).
+ */
+export function computeRenewalUpdate(formulaConfig: FormulaConfig): RenewalUpdate {
+  const now = Date.now();
+  return {
+    status: "ONLINE",
+    expires_at: new Date(now + formulaConfig.durationDays * 24 * 3600 * 1000).toISOString(),
+    highlight_expires_at:
+      formulaConfig.highlightDays > 0
+        ? new Date(now + formulaConfig.highlightDays * 24 * 3600 * 1000).toISOString()
+        : null,
+    is_boosted: false,
+    boosted_at: null,
+  };
+}
+
 // Tarifs des opérations
 export const EDIT_AD_PRICE = 999; // Modification d'annonce en FCFA
 export const BOOST_PERCENTAGE = 0.60; // 60% du prix d'origine de la formule
+
+// Longueur minimale du titre/de la description — contrôlée côté client ET
+// serveur avec ces mêmes constantes (POST /api/ads, PATCH /api/ads/[id]) :
+// sans le contrôle serveur, un appel direct à l'API avec un titre/une
+// description quasi vide publiait une annonce réelle et visible.
+export const MIN_AD_TITLE_LENGTH = 10;
+export const MIN_AD_DESCRIPTION_LENGTH = 20;
+// Dupliqué à 4 endroits avant (2 formulaires + 2 routes API) — regroupé ici
+// pour ne plus avoir à le changer séparément à chaque fois.
+export const MAX_AD_PHOTOS = 5;
 
 // Catégories et Sous-catégories obligatoires
 export const CATEGORIES = [

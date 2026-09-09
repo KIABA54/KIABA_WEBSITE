@@ -7,9 +7,15 @@ import { runInBackground } from "@/lib/backgroundTask";
 import { validateAdContent } from "@/lib/moderation";
 import { initiateGeniusPayCheckout } from "@/lib/geniuspay";
 import { checkRateLimit, rateLimitResponseBody } from "@/lib/rateLimit";
-import { EDIT_AD_PRICE, CONTACT_CHANNELS, CLIENT_TYPES } from "@/lib/constants";
+import {
+  EDIT_AD_PRICE,
+  CONTACT_CHANNELS,
+  CLIENT_TYPES,
+  MIN_AD_TITLE_LENGTH,
+  MIN_AD_DESCRIPTION_LENGTH,
+  MAX_AD_PHOTOS as MAX_PHOTOS,
+} from "@/lib/constants";
 
-const MAX_PHOTOS = 5;
 const CONTACT_CHANNEL_IDS: readonly string[] = CONTACT_CHANNELS.map((c) => c.id);
 const ACCEPTED_CLIENT_IDS: readonly string[] = CLIENT_TYPES.map((c) => c.id);
 
@@ -88,6 +94,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     ) {
       return NextResponse.json({ error: "Champs obligatoires manquants." }, { status: 400 });
     }
+    if (title.trim().length < MIN_AD_TITLE_LENGTH) {
+      return NextResponse.json(
+        { error: `Le titre doit comporter au moins ${MIN_AD_TITLE_LENGTH} caractères.` },
+        { status: 400 }
+      );
+    }
+    if (description.trim().length < MIN_AD_DESCRIPTION_LENGTH) {
+      return NextResponse.json(
+        { error: `La description doit comporter au moins ${MIN_AD_DESCRIPTION_LENGTH} caractères.` },
+        { status: 400 }
+      );
+    }
     if (!CONTACT_CHANNEL_IDS.includes(contact_channels)) {
       return NextResponse.json({ error: "Canal de contact invalide." }, { status: 400 });
     }
@@ -106,17 +124,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: moderation.reason }, { status: 400 });
     }
 
-    const rateLimit = await checkRateLimit(`ads:edit:${session.userId}`, 20, 15 * 60);
+    // Ni l'une ni l'autre ne dépend du résultat de l'autre — parallélisées
+    // pour économiser un aller-retour réseau à chaque modification.
+    const supabase = createAdminClient();
+    const [rateLimit, { data: ad }] = await Promise.all([
+      checkRateLimit(`ads:edit:${session.userId}`, 20, 15 * 60),
+      supabase.from("ads").select("id, user_id, status").eq("id", id).maybeSingle(),
+    ]);
     if (!rateLimit.allowed) {
       return NextResponse.json(rateLimitResponseBody(), { status: 429 });
     }
-
-    const supabase = createAdminClient();
-    const { data: ad } = await supabase
-      .from("ads")
-      .select("id, user_id, status")
-      .eq("id", id)
-      .maybeSingle();
 
     if (!ad) {
       return NextResponse.json({ error: "Annonce introuvable." }, { status: 404 });

@@ -1,11 +1,11 @@
 // Fausse implémentation minimale du query builder supabase-js, en mémoire,
 // pour tester des route handlers réels (POST/PATCH...) sans base de données.
 // Ne couvre que ce dont ces routes ont besoin : from().select/insert/update/
-// delete().eq/neq/order/limit().single/maybeSingle(), et le mode "thenable"
-// (await direct sur la chaîne sans méthode terminale, comme le fait
-// réellement supabase-js pour un update/delete/insert simple).
+// delete().eq/neq/lte/in/order/limit().single/maybeSingle(), et le mode
+// "thenable" (await direct sur la chaîne sans méthode terminale, comme le
+// fait réellement supabase-js pour un update/delete/insert simple).
 type Row = Record<string, unknown>;
-type FilterOp = "eq" | "neq";
+type FilterOp = "eq" | "neq" | "lte" | "in";
 
 let idCounter = 0;
 function nextId(): string {
@@ -37,10 +37,21 @@ export function createMockSupabase(initial: Record<string, Row[]> = {}) {
     let orderBy: { col: string; ascending: boolean } | null = null;
     let limitN: number | null = null;
 
+    function matchesFilter(row: Row, col: string, op: FilterOp, val: unknown): boolean {
+      switch (op) {
+        case "eq":
+          return row[col] === val;
+        case "neq":
+          return row[col] !== val;
+        case "lte":
+          return (row[col] as string | number) <= (val as string | number);
+        case "in":
+          return (val as unknown[]).includes(row[col]);
+      }
+    }
+
     function applyFilters(rows: Row[]): Row[] {
-      return rows.filter((row) =>
-        filters.every(([col, op, val]) => (op === "eq" ? row[col] === val : row[col] !== val))
-      );
+      return rows.filter((row) => filters.every(([col, op, val]) => matchesFilter(row, col, op, val)));
     }
 
     async function execute(): Promise<{ data: Row[] | null; error: { message: string } | null }> {
@@ -103,6 +114,14 @@ export function createMockSupabase(initial: Record<string, Row[]> = {}) {
       },
       neq(col: string, val: unknown) {
         filters.push([col, "neq", val]);
+        return builder;
+      },
+      lte(col: string, val: unknown) {
+        filters.push([col, "lte", val]);
+        return builder;
+      },
+      in(col: string, values: unknown[]) {
+        filters.push([col, "in", values]);
         return builder;
       },
       order(col: string, opts?: { ascending?: boolean }) {

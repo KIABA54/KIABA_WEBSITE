@@ -90,13 +90,13 @@ export async function initiateGeniusPayCheckout(
 
     const json = await res.json();
     return json as GeniusPayPaymentResponse;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[GeniusPay] Erreur lors de l'appel API:", error);
     return {
       success: false,
       error: {
         code: "NETWORK_ERROR",
-        message: error?.message || "Erreur de connexion avec GeniusPay",
+        message: error instanceof Error ? error.message : "Erreur de connexion avec GeniusPay",
       },
     };
   }

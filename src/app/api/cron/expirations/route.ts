@@ -19,17 +19,33 @@ interface AlertWindow {
 // vrai H-1 fiable, il faudrait soit passer au plan Pro (cron plus fréquent),
 // soit appeler cette route depuis un service externe (GitHub Actions,
 // cron-job.org...) avec l'en-tête "Authorization: Bearer <CRON_SECRET>".
+// Triées de la plus urgente à la moins urgente : voir pourquoi dans
+// sendAlertsForWindow ci-dessous (bug réel trouvé lors d'un audit — une
+// annonce qui expire dans 30 minutes recevait les 3 emails "48h", "24h" ET
+// "1h" d'un coup, puisque `expires_at <= seuil` matche les 3 fenêtres à la
+// fois pour une échéance aussi proche).
 const ALERT_WINDOWS: AlertWindow[] = [
-  { hours: 48, flagColumn: "alert_2d_sent", delayLabel: "48 heures" },
-  { hours: 24, flagColumn: "alert_1d_sent", delayLabel: "24 heures" },
   { hours: 1, flagColumn: "alert_1h_sent", delayLabel: "1 heure" },
+  { hours: 24, flagColumn: "alert_1d_sent", delayLabel: "24 heures" },
+  { hours: 48, flagColumn: "alert_2d_sent", delayLabel: "48 heures" },
 ];
 
-// Envoie les alertes d'une fenêtre donnée (J-2 / J-1 / H-1) et marque
+// Envoie les alertes d'une fenêtre donnée (H-1 / J-1 / J-2) et marque
 // chaque annonce traitée comme telle — sinon le prochain passage du cron
 // (quelques minutes plus tard) renverrait le même email en boucle jusqu'à
 // l'expiration réelle de l'annonce.
-async function sendAlertsForWindow(supabase: SupabaseAdmin, now: Date, window: AlertWindow): Promise<number> {
+//
+// `supersededWindows` : les fenêtres MOINS urgentes (traitées après celle-ci
+// dans ALERT_WINDOWS) sont marquées comme envoyées EN MÊME TEMPS que celle-
+// ci — sans ça, une annonce qui expire dans 30 minutes matche à la fois les
+// seuils "48h", "24h" ET "1h" (tous des `expires_at <= seuil`), et recevait
+// les 3 emails d'un coup au lieu du seul email pertinent ("1h").
+async function sendAlertsForWindow(
+  supabase: SupabaseAdmin,
+  now: Date,
+  window: AlertWindow,
+  supersededWindows: AlertWindow[]
+): Promise<number> {
   const threshold = new Date(now.getTime() + window.hours * 3600 * 1000).toISOString();
 
   const { data: ads } = await supabase
@@ -55,7 +71,11 @@ async function sendAlertsForWindow(supabase: SupabaseAdmin, now: Date, window: A
     .map((r) => r.value);
 
   if (sentAdIds.length > 0) {
-    await supabase.from("ads").update({ [window.flagColumn]: true }).in("id", sentAdIds);
+    const flagsToSet: Record<string, boolean> = { [window.flagColumn]: true };
+    for (const superseded of supersededWindows) {
+      flagsToSet[superseded.flagColumn] = true;
+    }
+    await supabase.from("ads").update(flagsToSet).in("id", sentAdIds);
   }
 
   const failedCount = results.length - sentAdIds.length;
@@ -92,8 +112,10 @@ export async function GET(req: Request) {
     // 2. ALERTES D'EXPIRATION (J-2, J-1, H-1) — envoyées une seule fois par
     // fenêtre grâce aux colonnes alert_2d_sent/alert_1d_sent/alert_1h_sent.
     const alertCounts: Record<string, number> = {};
-    for (const window of ALERT_WINDOWS) {
-      alertCounts[window.flagColumn] = await sendAlertsForWindow(supabase, now, window);
+    for (let i = 0; i < ALERT_WINDOWS.length; i++) {
+      const window = ALERT_WINDOWS[i];
+      const supersededWindows = ALERT_WINDOWS.slice(i + 1);
+      alertCounts[window.flagColumn] = await sendAlertsForWindow(supabase, now, window, supersededWindows);
     }
 
     return NextResponse.json({

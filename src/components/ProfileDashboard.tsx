@@ -400,7 +400,8 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 <div className="flex gap-3">
                   <img
                     src={ad.photos[0]}
-                    alt=""
+                    alt={ad.title}
+                    loading="lazy"
                     className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
@@ -482,7 +483,8 @@ export default function ProfileDashboard({ initialUser, initialAds }: ProfileDas
                 <div className="flex gap-3">
                   <img
                     src={ad.photos[0]}
-                    alt=""
+                    alt={ad.title}
+                    loading="lazy"
                     className="w-20 h-20 rounded-xl object-cover grayscale flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
