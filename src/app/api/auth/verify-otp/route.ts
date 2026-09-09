@@ -101,6 +101,7 @@ export async function POST(req: Request) {
       message: "Profil créé avec succès. Bienvenue sur KIABA RENCONTRE !",
     });
   } catch (error: unknown) {
+    console.error("[API auth/verify-otp] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }

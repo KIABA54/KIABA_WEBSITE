@@ -115,6 +115,7 @@ export async function POST(req: Request) {
       message: "Code OTP envoyé par email",
     });
   } catch (error: unknown) {
+    console.error("[API auth/register] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }

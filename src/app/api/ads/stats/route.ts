@@ -8,7 +8,8 @@ export async function GET() {
   try {
     const stats = await getAdsStats();
     return NextResponse.json({ success: true, ...stats });
-  } catch {
+  } catch (error: unknown) {
+    console.error("[API ads/stats] Erreur:", error);
     return NextResponse.json({ error: "Erreur lors du calcul des statistiques." }, { status: 500 });
   }
 }

@@ -296,6 +296,7 @@ export async function POST(req: Request) {
       reference: checkout.data.reference,
     });
   } catch (error: unknown) {
+    console.error("[API ads] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -354,6 +355,7 @@ export async function GET(req: Request) {
       },
     });
   } catch (error: unknown) {
+    console.error("[API ads] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }

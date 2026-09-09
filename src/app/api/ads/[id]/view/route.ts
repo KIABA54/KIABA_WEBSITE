@@ -63,6 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     });
     return response;
   } catch (error: unknown) {
+    console.error("[API ads/:id/view] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }

@@ -170,6 +170,7 @@ export async function POST(req: Request) {
       reference: checkout.data.reference,
     });
   } catch (error: unknown) {
+    console.error("[API payments/initiate] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }

@@ -50,6 +50,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ success: true, ad: mapAdRow(data as unknown as AdRow) });
   } catch (error: unknown) {
+    console.error("[API ads/:id] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -261,6 +262,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       reference: checkout.data.reference,
     });
   } catch (error: unknown) {
+    console.error("[API ads/:id] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -303,6 +305,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
+    console.error("[API ads/:id] Erreur:", error);
     const message = error instanceof Error ? error.message : "Erreur serveur";
     return NextResponse.json({ error: message }, { status: 500 });
   }
