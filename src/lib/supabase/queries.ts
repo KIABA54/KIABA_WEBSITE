@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { createAdminClient } from "./admin";
 import { AD_SELECT_WITH_RELATIONS, mapAdRow, type AdRow } from "./ads";
-import type { Ad } from "@/lib/types";
+import type { Ad, User } from "@/lib/types";
 
 // Requêtes serveur partagées entre generateMetadata() et le rendu de la page
 // (React Server Components) — `cache()` déduplique l'appel Supabase pour
@@ -104,6 +104,32 @@ export const getOnlineAdsPage = cache(async (limit = 12): Promise<AdsPageResult>
     total: count || 0,
   };
 });
+
+/** Profil complet de l'utilisateur connecté — pour le rendu serveur de /profil. */
+export async function getUserById(id: string): Promise<User | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, username, email, birth_date, gender, profile_photo_url, is_verified, free_ad_eligible, created_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as User;
+}
+
+/** Toutes les annonces (hors supprimées) de l'utilisateur connecté — pour /profil. */
+export async function getUserAds(userId: string): Promise<Ad[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("ads")
+    .select(AD_SELECT_WITH_RELATIONS)
+    .eq("user_id", userId)
+    .neq("status", "DELETED")
+    .order("created_at", { ascending: false });
+
+  return ((data as unknown as AdRow[] | null) || []).map(mapAdRow);
+}
 
 /** Annonces en ligne d'une ville donnée — pages SEO dédiées /annonces/ville/[city]. */
 export const getOnlineAdsByCity = cache(async (cityId: string, limit = 24): Promise<AdsPageResult> => {
